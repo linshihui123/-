@@ -136,6 +136,30 @@
       </el-aside>
     </el-container>
 
+    <!-- 电影详情弹窗 -->
+    <el-dialog
+      title="电影详情"
+      :visible.sync="movieDetailDialogVisible"
+      width="60%"
+      :before-close="closeMovieDetailDialog">
+      <div v-if="currentMovie" class="movie-detail-content">
+        <h3>{{ currentMovie.movieName || currentMovie.name || '未知电影' }}</h3>
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="电影ID">{{ currentMovie.id || currentMovie.movieId || '未知' }}</el-descriptions-item>
+          <el-descriptions-item label="电影名称">{{ currentMovie.movieName || currentMovie.name || '未知' }}</el-descriptions-item>
+          <el-descriptions-item label="类型">{{ currentMovie.type || '未知' }}</el-descriptions-item>
+          <el-descriptions-item label="地区">{{ currentMovie.direction || currentMovie.region || '未知' }}</el-descriptions-item>
+          <el-descriptions-item label="评分">{{ currentMovie.rating || currentMovie.movie_rating || currentMovie.movieRating || '暂无评分' }}</el-descriptions-item>
+          <el-descriptions-item label="导演">{{ getDirectorNames(currentMovie) }}</el-descriptions-item>
+          <el-descriptions-item label="演员">{{ getActorNames(currentMovie) }}</el-descriptions-item>
+          <el-descriptions-item label="简介" :span="2">
+            <div class="movie-intro">{{ currentMovie.instruction || currentMovie.description || '暂无简介' }}</div>
+          </el-descriptions-item>
+        </el-descriptions>
+
+      </div>
+    </el-dialog>
+
     <!-- 评论弹窗 -->
     <el-dialog
       title="电影评论"
@@ -143,7 +167,7 @@
       width="60%"
       :before-close="closeCommentDialog">
       <div v-if="currentMovie">
-        <h3>{{ currentMovie.movieName }} 的评论</h3>
+        <h3>{{ currentMovie.movieName || currentMovie.name }} 的评论</h3>
         <div v-if="comments.length > 0" class="comments-list">
           <el-card v-for="comment in comments" :key="comment.comment_id" class="comment-item">
             <div class="comment-content">
@@ -178,6 +202,7 @@ export default {
       loading: false,
       selectedType: '',
       commentDialogVisible: false,
+      movieDetailDialogVisible: false,  // 新增电影详情弹窗可见性变量
       currentMovie: null,
       comments: [],
       // AI助手相关数据
@@ -284,7 +309,7 @@ export default {
                 movieName: movie.movieName || movie.name || '未知电影',
                 type: movie.type || '未知',
                 direction: movie.direction || movie.region || '未知',
-                rating: movie.rating || movie.movie_rating || '暂无评分',
+                rating: movie.rating || movie.movie_rating || movie.movieRating || '暂无评分',
                 instruction: movie.instruction || '',
                 directors: movie.directors || movie.director || [],
                 actors: movie.actors || movie.actor || [],
@@ -327,8 +352,8 @@ export default {
           }
         } else {
           this.chatMessages.push({
-            role: 'assistant',
-            content: '抱歉，未能理解您的需求，请尝试用更清晰的语言描述您的电影偏好。'
+              role: 'assistant',
+              content: '抱歉，未能理解您的需求，请尝试用更清晰的语言描述您的电影偏好。'
           });
         }
       } catch (error) {
@@ -380,7 +405,7 @@ export default {
               movieName: movie.movieName || movie.name || '未知电影',
               type: movie.type || '未知',
               direction: movie.direction || movie.region || '未知',
-              rating: movie.rating || movie.movie_rating || '暂无评分',
+              rating: movie.rating || movie.movie_rating || movie.movieRating || '暂无评分',
               instruction: movie.instruction || '',
               directors: movie.directors || movie.director || [],
               actors: movie.actors || movie.actor || [],
@@ -436,7 +461,7 @@ export default {
               movieName: movie.movieName || movie.name || '未知电影',
               type: movie.type || '未知',
               direction: movie.direction || movie.region || '未知',
-              rating: movie.rating || movie.movie_rating || '暂无评分',
+              rating: movie.rating || movie.movie_rating || movie.movieRating || '暂无评分',
               instruction: movie.instruction || '',
               directors: movie.directors || movie.director || [],
               actors: movie.actors || movie.actor || [],
@@ -465,9 +490,10 @@ export default {
         this.loading = false;
       }
     },
-    // 处理电影点击事件
+    // 处理电影点击事件 - 打开电影详情
     handleMovieClick(movie) {
-      this.$emit('movie-click', movie);
+      this.currentMovie = movie;
+      this.movieDetailDialogVisible = true;
     },
     // 格式化导演名称
     getDirectorNames(movie) {
@@ -476,8 +502,8 @@ export default {
         return movie.directors.map(director => director.name || director).join('、');
       } else if (movie.directorString) {
         return movie.directorString.split('|').join('、');
-      } else if (movie.directorList && movie.directorList.length > 0) {
-        // 使用解析后的导演列表
+      } else if (Array.isArray(movie.directorList) && movie.directorList.length > 0) {
+        // 使用解析后的导演列表（数组格式）
         return movie.directorList.join('、');
       } else if (movie.director) {
         // 如果director是字符串格式
@@ -509,8 +535,8 @@ export default {
         return movie.actors.map(actor => actor.name || actor).join('、');
       } else if (movie.actorString) {
         return movie.actorString.split('|').join('、');
-      } else if (movie.actorList && movie.actorList.length > 0) {
-        // 使用解析后的演员列表
+      } else if (Array.isArray(movie.actorList) && movie.actorList.length > 0) {
+        // 使用解析后的演员列表（数组格式)
         return movie.actorList.join('、');
       } else if (movie.actor) {
         // 如果actor是字符串格式
@@ -531,29 +557,6 @@ export default {
         } else {
           return '未知';
         }
-      }
-      return '未知';
-    }
-    // 格式化演员名称
-    getActorNames(movie) {
-      // 优先使用关系数据，如果没有则使用字符串解析
-      if (movie.actors && movie.actors.length > 0) {
-        return movie.actors.map(actor => actor.name || actor).join('、');
-      } else if (movie.actorString) {
-        return movie.actorString.split('|').join('、');
-      } else if (movie.actorList && movie.actorList.length > 0) {
-        // 使用解析后的演员列表
-        return movie.actorList.join('、');
-      } else if (movie.actor) {
-        // 如果actor是字符串格式
-        if (typeof movie.actor === 'string') {
-          return movie.actor.split('|').join('、');
-        }
-        // 如果actor是对象数组
-        if (Array.isArray(movie.actor)) {
-          return movie.actor.map(actor => actor.name || actor).join('、');
-        }
-        return movie.actor;
       }
       return '未知';
     },
@@ -633,6 +636,13 @@ export default {
     // 关闭评论弹窗
     closeCommentDialog() {
       this.commentDialogVisible = false;
+      this.currentMovie = null;
+      this.comments = [];
+    },
+    
+    // 关闭电影详情弹窗
+    closeMovieDetailDialog() {
+      this.movieDetailDialogVisible = false;
       this.currentMovie = null;
       this.comments = [];
     }
@@ -944,6 +954,19 @@ export default {
 .quick-actions .el-button {
   padding: 6px 10px;
   font-size: 12px;
+}
+
+.movie-detail-content h3 {
+  margin-top: 0;
+  color: #303133;
+  border-bottom: 1px solid #dcdfe6;
+  padding-bottom: 15px;
+}
+
+.movie-intro {
+  line-height: 1.6;
+  color: #606266;
+  white-space: pre-wrap;
 }
 
 /* 响应式设计 */
