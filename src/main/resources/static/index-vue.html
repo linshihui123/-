@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电影推荐系统 - 入口页</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        .btn {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .features {
+            margin: 30px 0;
+            text-align: left;
+        }
+        .features li {
+            margin: 10px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .features li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #2ecc71;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🎬 电影推荐系统</h1>
+            <p>基于知识图谱与AI技术的智能电影推荐平台</p>
+            
+            <div class="features">
+                <h3>系统特性:</h3>
+                <ul>
+                    <li>多算法融合推荐：协同过滤 + 内容推荐 + 知识图谱推荐</li>
+                    <li>AI智能解析：支持自然语言描述的个性化推荐</li>
+                    <li>丰富的电影信息：涵盖电影、导演、演员等详细信息</li>
+                    <li>响应式设计：支持多种设备访问</li>
+                </ul>
+            </div>
+            
+            <div>
+                <a href="/" class="btn">🌟 进入推荐系统</a>
+                <a href="/api/movie/list?page=0&size=10" class="btn" target="_blank">📊 查看API</a>
+            </div>
+            
+            <p style="margin-top: 30px; font-size: 14px; color: #95a5a6;">
+                系统支持个性化推荐、电影搜索、详情查看等功能
+            </p>
+        </div>
+    </div>
+</body>
+</html>

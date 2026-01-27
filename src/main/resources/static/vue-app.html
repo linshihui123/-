@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电影推荐系统 - Vue版</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .feature-card {
+            border: 1px solid #ebeef5;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+            background: white;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        }
+        .btn-group {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .btn {
+            margin: 0 10px;
+            padding: 10px 20px;
+            background: #409EFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: #66b1ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>电影推荐系统</h1>
+        <p>基于知识图谱与AI技术的智能电影推荐</p>
+    </div>
+    
+    <div class="container">
+        <div class="feature-card">
+            <h2>系统特点</h2>
+            <ul>
+                <li>多算法融合推荐：协同过滤 + 内容推荐 + 知识图谱</li>
+                <li>AI智能解析：支持自然语言描述的个性化推荐</li>
+                <li>知识图谱可视化：展示电影、导演、演员之间的复杂关系</li>
+                <li>个性化体验：基于用户行为的精准推荐</li>
+            </ul>
+        </div>
+        
+        <div class="btn-group">
+            <a href="/#" class="btn">进入推荐系统</a>
+            <a href="/api/movie/list?page=0&size=20" class="btn" target="_blank">查看API</a>
+        </div>
+        
+        <div class="feature-card">
+            <h2>使用说明</h2>
+            <p>1. 在推荐页面输入您的观影偏好</p>
+            <p>2. 系统将通过AI解析您的需求并推荐相应电影</p>
+            <p>3. 也可以浏览全部电影，查看详细信息</p>
+        </div>
+    </div>
+    
+    <script>
+        // 重定向到Vue应用
+        document.querySelector('.btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = '/';
+        });
+    </script>
+</body>
+</html>
