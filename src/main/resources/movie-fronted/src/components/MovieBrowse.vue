@@ -543,7 +543,7 @@ export default {
       try {
         // 获取详细电影评论信息 - 包含电影ID、电影名、评论ID和评论内容
         const movieId = movie.movieId || movie.info_id || movie.id;
-        const response = await request.get(`/movie/movie-comments/${movieId}`);
+        const response = await request.get(`http://localhost:8081/movie/movie-comments/${movieId}`);
         if (response && response.code === 200 && response.data) {
           // 直接使用后端返回的数据结构
           this.comments = response.data.map(item => {

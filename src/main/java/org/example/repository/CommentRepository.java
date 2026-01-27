@@ -23,6 +23,6 @@ public interface CommentRepository extends Neo4jRepository<CommentNode, Long> {
     List<CommentNode> findByUserId(@Param("userId") String userId);
     
     // 根据电影ID和评分获取评论
-    @Query("MATCH (c:Comment)-[:TARGETS]->(m:Movie) WHERE m.info_id = $movieId AND c.rating >= $minRating RETURN c")
+    @Query("MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment) WHERE m.info_id = $movieId AND c.rating >= $minRating RETURN c")
     List<CommentNode> findByMovieIdAndMinRating(@Param("movieId") Integer movieId, @Param("minRating") int minRating);
 }
