@@ -145,7 +145,7 @@
       <div v-if="currentMovie">
         <h3>{{ currentMovie.movieName }} 的评论</h3>
         <div v-if="comments.length > 0" class="comments-list">
-          <el-card v-for="comment in comments" :key="comment.id" class="comment-item">
+          <el-card v-for="comment in comments" :key="comment.comment_id" class="comment-item">
             <div class="comment-content">
               <p><strong>用户：</strong>{{ comment.creator || '匿名用户' }}</p>
               <p><strong>评论内容：</strong>{{ comment.content || '暂无评论内容' }}</p>
@@ -482,16 +482,58 @@ export default {
       } else if (movie.director) {
         // 如果director是字符串格式
         if (typeof movie.director === 'string') {
-          return movie.director.split('|').join('、');
+          // 处理空字符串和null值
+          const directorStr = movie.director.trim();
+          if (directorStr && directorStr !== 'null' && directorStr !== 'undefined') {
+            return directorStr.split('|').filter(item => item.trim()).join('、');
+          } else {
+            return '未知';
+          }
         }
         // 如果director是对象数组
         if (Array.isArray(movie.director)) {
           return movie.director.map(director => director.name || director).join('、');
+        } else if (movie.director && movie.director !== 'null' && movie.director !== 'undefined') {
+          return String(movie.director);
+        } else {
+          return '未知';
         }
-        return movie.director;
       }
       return '未知';
     },
+
+    // 格式化演员名称
+    getActorNames(movie) {
+      // 优先使用关系数据，如果没有则使用字符串解析
+      if (movie.actors && movie.actors.length > 0) {
+        return movie.actors.map(actor => actor.name || actor).join('、');
+      } else if (movie.actorString) {
+        return movie.actorString.split('|').join('、');
+      } else if (movie.actorList && movie.actorList.length > 0) {
+        // 使用解析后的演员列表
+        return movie.actorList.join('、');
+      } else if (movie.actor) {
+        // 如果actor是字符串格式
+        if (typeof movie.actor === 'string') {
+          // 处理空字符串和null值
+          const actorStr = movie.actor.trim();
+          if (actorStr && actorStr !== 'null' && actorStr !== 'undefined') {
+            return actorStr.split('|').filter(item => item.trim()).join('、');
+          } else {
+            return '未知';
+          }
+        }
+        // 如果actor是对象数组
+        if (Array.isArray(movie.actor)) {
+          return movie.actor.map(actor => actor.name || actor).join('、');
+        } else if (movie.actor && movie.actor !== 'null' && movie.actor !== 'undefined') {
+          return String(movie.actor);
+        } else {
+          return '未知';
+        }
+      }
+      return '未知';
+    }
     // 格式化演员名称
     getActorNames(movie) {
       // 优先使用关系数据，如果没有则使用字符串解析
@@ -540,29 +582,45 @@ export default {
     // 显示详细电影评论
     async showDetailedMovieComments(movie) {
       this.currentMovie = movie;
+      console.log('准备获取电影评论，电影信息:', movie);
       try {
         // 获取详细电影评论信息 - 包含电影ID、电影名、评论ID和评论内容
         const movieId = movie.movieId || movie.info_id || movie.id;
-        const response = await request.get(`http://localhost:8081/movie/movie-comments/${movieId}`);
+        console.log('请求的电影ID:', movieId);
+        const response = await request.get(`/movie/movie-comments/${movieId}`);
+        console.log('API响应:', response);
+        
         if (response && response.code === 200 && response.data) {
-          // 直接使用后端返回的数据结构
-          this.comments = response.data.map(item => {
+          // 直接使用后端返回的数据结构，确保所有必需字段都有默认值
+          const processedComments = response.data.map(item => {
             return {
-              comment_id: item['comment_id'],
-              movie_id: item['movie_id'],
-              creator: item['creator'],
-              content: item['content'],
-              comment_rating: item['comment_rating'],
-              comment_time: item['comment_time'],
-              comment_add_time: item['comment_add_time']
+              comment_id: item['comment_id'] !== undefined && item['comment_id'] !== null ? item['comment_id'] : '未知',
+              movie_id: item['movie_id'] !== undefined && item['movie_id'] !== null ? item['movie_id'] : '未知',
+              creator: item['creator'] !== undefined && item['creator'] !== null ? item['creator'] : '匿名用户',
+              content: item['content'] !== undefined && item['content'] !== null ? item['content'] : '暂无评论内容',
+              comment_rating: item['comment_rating'] !== undefined && item['comment_rating'] !== null ? item['comment_rating'] : '暂无评分',
+              comment_time: item['comment_time'] !== undefined && item['comment_time'] !== null ? item['comment_time'] : '未知',
+              comment_add_time: item['comment_add_time'] !== undefined && item['comment_add_time'] !== null ? item['comment_add_time'] : '未知'
             };
           });
-          this.commentDialogVisible = true;
+          
+          console.log('处理后的评论数据:', processedComments);
+          
+          // 使用Vue.set确保响应式更新
+          this.comments = processedComments;
+          
+          // 强制更新视图
+          this.$nextTick(() => {
+            this.commentDialogVisible = true;
+            this.$forceUpdate();
+            console.log('评论弹窗已打开，评论数量:', this.comments.length);
+          });
 
           // 显示成功消息
           this.$message.success(`获取到 ${this.comments.length} 条评论详情`);
         } else {
           this.comments = [];
+          console.error('获取评论失败，响应数据:', response);
           this.$message.error('获取评论详情失败');
         }
       } catch (error) {
@@ -686,6 +744,7 @@ export default {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  height: 48px; /* 固定高度确保2行一致 */
 }
 
 .movie-metadata {
@@ -708,6 +767,8 @@ export default {
 
 .movie-info {
   margin-bottom: 15px;
+  height: 48px; /* 固定导演和演员信息区域高度 */
+  overflow: hidden;
 }
 
 .info-item {
@@ -736,6 +797,7 @@ export default {
   overflow: hidden;
   margin-bottom: 20px;
   min-height: 67px;
+  height: 67px; /* 固定高度确保3行一致 */
 }
 
 .movie-actions {

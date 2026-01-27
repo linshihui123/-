@@ -410,17 +410,19 @@ public class MovieRecommendationService {
      */
     public Result<List<Map<String, Object>>> getMovieCommentsByMovieId(Integer movieId) {
         try {
-            // 1. 修正Cypher语句：补充所有缺失字段，并用英文别名匹配目标返回格式
+            log.info("正在查询电影ID {} 的评论", movieId);
+            
+            // 1. 先查询通过关系连接的评论
             String cypher = "MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment) " +
                     "WHERE m.info_id = $movieId " +
                     "RETURN " +
+                    "id(c) AS comment_id, " +
                     "m.info_id AS movie_id, " +
-                    "c.id AS comment_id, " +
-                    "c.content AS content, " +
                     "c.creator AS creator, " +
+                    "c.content AS content, " +
                     "c.comment_rating AS comment_rating, " +
                     "c.comment_time AS comment_time, " +
-                    "c.comment_add_time AS comment_add_time"; // 移除多余的分号，避免语法问题
+                    "c.comment_add_time AS comment_add_time";
 
             Map<String, Object> params = new HashMap<>();
             params.put("movieId", movieId);
@@ -430,14 +432,47 @@ public class MovieRecommendationService {
             List<Map<String, Object>> results = new ArrayList<>();
             for (Map<String, Object> row : queryResult) {
                 Map<String, Object> resultRow = new HashMap<>();
-                resultRow.put("movie_id", row.get("movie_id"));
                 resultRow.put("comment_id", row.get("comment_id"));
-                resultRow.put("content", row.get("content"));
+                resultRow.put("movie_id", row.get("movie_id"));
                 resultRow.put("creator", row.get("creator"));
+                resultRow.put("content", row.get("content"));
                 resultRow.put("comment_rating", row.get("comment_rating"));
                 resultRow.put("comment_time", row.get("comment_time"));
                 resultRow.put("comment_add_time", row.get("comment_add_time"));
                 results.add(resultRow);
+            }
+            
+            log.info("通过关系查询到 {} 条评论", results.size());
+            
+            // 如果通过关系没查到，尝试通过属性查询
+            if (results.isEmpty()) {
+                log.info("通过关系未查询到评论，尝试通过属性查询电影ID {}", movieId);
+                String attrCypher = "MATCH (c:Comment) " +
+                        "WHERE c.movie_id = $movieId " +
+                        "RETURN " +
+                        "id(c) AS comment_id, " +
+                        "c.movie_id AS movie_id, " +
+                        "c.creator AS creator, " +
+                        "c.content AS content, " +
+                        "c.comment_rating AS comment_rating, " +
+                        "c.comment_time AS comment_time, " +
+                        "c.comment_add_time AS comment_add_time";
+                
+                Iterable<Map<String, Object>> attrQueryResult = neo4jSession.query(attrCypher, params);
+                
+                for (Map<String, Object> row : attrQueryResult) {
+                    Map<String, Object> resultRow = new HashMap<>();
+                    resultRow.put("comment_id", row.get("comment_id"));
+                    resultRow.put("movie_id", row.get("movie_id"));
+                    resultRow.put("creator", row.get("creator"));
+                    resultRow.put("content", row.get("content"));
+                    resultRow.put("comment_rating", row.get("comment_rating"));
+                    resultRow.put("comment_time", row.get("comment_time"));
+                    resultRow.put("comment_add_time", row.get("comment_add_time"));
+                    results.add(resultRow);
+                }
+                
+                log.info("通过属性查询到 {} 条评论", results.size());
             }
 
             return Result.success(results);

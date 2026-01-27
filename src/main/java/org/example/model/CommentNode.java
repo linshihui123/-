@@ -30,14 +30,14 @@ public class CommentNode {
     @Property(name = "comment_add_time")
     private String ADD_TIME; // 添加时间
     
-    @Property(name = "movieId")
-    private Integer MOVIEID; // 电影ID
+    @Property(name = "movie_id")
+    private Integer movieId; // 电影ID
 
     // 关系：评论-属于->用户
     @Relationship(type = "CREATED_BY", direction = Relationship.OUTGOING)
     private UserNode user;
 
     // 关系：评论-针对->电影
-    @Relationship(type = "TARGETS", direction = Relationship.OUTGOING)
+    @Relationship(type = "HAS_COMMENT", direction = Relationship.OUTGOING)
     private MovieNode movie;
 }

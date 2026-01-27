@@ -145,7 +145,7 @@
       <div v-if="currentMovie">
         <h3>{{ currentMovie.movieName }} 的评论</h3>
         <div v-if="comments.length > 0" class="comments-list">
-          <el-card v-for="comment in comments" :key="comment.id" class="comment-item">
+          <el-card v-for="comment in comments" :key="comment.comment_id" class="comment-item">
             <div class="comment-content">
               <p><strong>用户：</strong>{{ comment.creator || '匿名用户' }}</p>
               <p><strong>评论内容：</strong>{{ comment.content || '暂无评论内容' }}</p>
@@ -540,29 +540,45 @@ export default {
     // 显示详细电影评论
     async showDetailedMovieComments(movie) {
       this.currentMovie = movie;
+      console.log('准备获取电影评论，电影信息:', movie);
       try {
         // 获取详细电影评论信息 - 包含电影ID、电影名、评论ID和评论内容
         const movieId = movie.movieId || movie.info_id || movie.id;
-        const response = await request.get(`http://localhost:8081/movie/movie-comments/${movieId}`);
+        console.log('请求的电影ID:', movieId);
+        const response = await request.get(`/movie/movie-comments/${movieId}`);
+        console.log('API响应:', response);
+        
         if (response && response.code === 200 && response.data) {
-          // 直接使用后端返回的数据结构
-          this.comments = response.data.map(item => {
+          // 直接使用后端返回的数据结构，确保所有必需字段都有默认值
+          const processedComments = response.data.map(item => {
             return {
-              comment_id: item['comment_id'],
-              movie_id: item['movie_id'],
-              creator: item['creator'],
-              content: item['content'],
-              comment_rating: item['comment_rating'],
-              comment_time: item['comment_time'],
-              comment_add_time: item['comment_add_time']
+              comment_id: item['comment_id'] !== undefined && item['comment_id'] !== null ? item['comment_id'] : '未知',
+              movie_id: item['movie_id'] !== undefined && item['movie_id'] !== null ? item['movie_id'] : '未知',
+              creator: item['creator'] !== undefined && item['creator'] !== null ? item['creator'] : '匿名用户',
+              content: item['content'] !== undefined && item['content'] !== null ? item['content'] : '暂无评论内容',
+              comment_rating: item['comment_rating'] !== undefined && item['comment_rating'] !== null ? item['comment_rating'] : '暂无评分',
+              comment_time: item['comment_time'] !== undefined && item['comment_time'] !== null ? item['comment_time'] : '未知',
+              comment_add_time: item['comment_add_time'] !== undefined && item['comment_add_time'] !== null ? item['comment_add_time'] : '未知'
             };
           });
-          this.commentDialogVisible = true;
+          
+          console.log('处理后的评论数据:', processedComments);
+          
+          // 使用Vue.set确保响应式更新
+          this.comments = processedComments;
+          
+          // 强制更新视图
+          this.$nextTick(() => {
+            this.commentDialogVisible = true;
+            this.$forceUpdate();
+            console.log('评论弹窗已打开，评论数量:', this.comments.length);
+          });
 
           // 显示成功消息
           this.$message.success(`获取到 ${this.comments.length} 条评论详情`);
         } else {
           this.comments = [];
+          console.error('获取评论失败，响应数据:', response);
           this.$message.error('获取评论详情失败');
         }
       } catch (error) {
