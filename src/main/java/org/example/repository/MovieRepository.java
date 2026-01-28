@@ -40,43 +40,11 @@ public interface MovieRepository extends Neo4jRepository<MovieNode, Long> {
     // 根据演员名称查找电影（处理字符串字段）
     @Query("MATCH (m:Movie) WHERE m.actor CONTAINS $actorName RETURN m")
     List<MovieNode> findByActorName(@Param("actorName") String actorName);
-
-    // 获取指定数量的电影节点及其关联的导演和演员
-    @Query("MATCH (m:Movie) " +
-           "OPTIONAL MATCH (m)-[:DIRECTED_BY]->(d:Director) " +
-           "OPTIONAL MATCH (m)-[:STARRED_BY]->(a:Actor) " +
-           "RETURN m, d, a LIMIT $limit")
-    List<Object[]> findMoviesWithAllRelations(@Param("limit") int limit);
     
     // 使用新的查询方法获取完整的图数据
     @Query("MATCH (m:Movie) RETURN m")
     List<MovieNode> findAllMovies();
-    
-    // 查询所有电影-导演关系
-    @Query("MATCH (m:Movie)-[:DIRECTED_BY]->(d:Director) RETURN m")
-    List<MovieNode> findMoviesWithDirectors();
-    
-    // 查询所有电影-演员关系
-    @Query("MATCH (m:Movie)-[:STARRED_BY]->(a:Actor) RETURN m")
-    List<MovieNode> findMoviesWithActors();
-    
-    // 查询所有导演
-    @Query("MATCH (d:Director) RETURN d")
-    List<org.example.model.DirectorNode> findAllDirectors();
-    
-    // 查询所有演员
-    @Query("MATCH (a:Actor) RETURN a")
-    List<org.example.model.ActorNode> findAllActors();
-    
-    // 查询特定电影的导演
-    @Query("MATCH (m:Movie)-[:DIRECTED_BY]->(d:Director) WHERE ID(m) = $movieId RETURN d")
-    List<org.example.model.DirectorNode> findDirectorsByMovieId(@Param("movieId") Long movieId);
-    
-    // 查询特定电影的演员
-    @Query("MATCH (m:Movie)-[:STARRED_BY]->(a:Actor) WHERE ID(m) = $movieId RETURN a")
-    List<org.example.model.ActorNode> findActorsByMovieId(@Param("movieId") Long movieId);
 
-    
     // 根据多个条件搜索电影
     @Query("MATCH (m:Movie) " +
            "WHERE ($keyword IS NULL OR toLower(m.name) CONTAINS toLower($keyword)) " +
@@ -87,14 +55,11 @@ public interface MovieRepository extends Neo4jRepository<MovieNode, Long> {
                                 @Param("type") String type, 
                                 @Param("skip") int skip, 
                                 @Param("size") int size);
-                                
-    // 根据电影ID获取评论
-    @Query("MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment) WHERE m.info_id = $movieId RETURN c")
-    List<CommentNode> findCommentsByMovieId(@Param("movieId") Integer movieId);
-    
+
     // 获取有评论的电影列表（分页）
     @Query("MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment) RETURN DISTINCT m SKIP $skip LIMIT $size")
     List<MovieNode> findMoviesWithCommentsPaginated(@Param("skip") int skip, @Param("size") int size);
-    
 
+    @Query("MATCH (m:Movie) RETURN m SKIP $skip LIMIT $size")
+    List<MovieNode> findOtherAllMovies(@Param("skip") int skip, @Param("size") int size);
 }

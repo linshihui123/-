@@ -104,28 +104,28 @@ public class MovieRecommendationService {
     }
 
     /**
-     * 获取有评论的电影列表（分页支持）
+     * 获取所有电影列表（分页支持）
      */
     public Result<List<MovieNode>> getAllMovies(int page, int size) {
         try {
             int skip = page * size;
+
+            // 获取所有电影（不只是有评论的电影）
+            List<MovieNode> allMovies = movieRepository.findOtherAllMovies(skip, size);
             
-            // 只获取有评论的电影
-            List<MovieNode> moviesWithComments = movieRepository.findMoviesWithCommentsPaginated(skip, size);
+            // 获取所有电影总数
+            long total = getTotalMovieCount();
             
-            // 获取有评论的电影总数
-            long total = getMoviesWithCommentsCount();
-            
-            // 检查moviesWithComments是否为null
-            if (moviesWithComments == null) {
-                moviesWithComments = new ArrayList<>();
+            // 检查allMovies是否为null
+            if (allMovies == null) {
+                allMovies = new ArrayList<>();
             }
             
             // 使用专门的方法来设置分页数据
-            return Result.successWithTotal(moviesWithComments, total);
+            return Result.successWithTotal(allMovies, total);
         } catch (Exception e) {
-            log.error("获取有评论的电影列表失败：page={}, size={}", page, size, e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取有评论的电影列表失败");
+            log.error("获取所有电影列表失败：page={}, size={}", page, size, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取所有电影列表失败");
         }
     }
     

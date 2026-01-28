@@ -283,19 +283,18 @@ export default {
       const centerX = canvasWidth / 2
       const centerY = canvasHeight / 2
 
-      // 电影节点布局参数
-      const movieSpacingX = canvasWidth * 0.8 / Math.max(1, Math.ceil(Math.sqrt(movieNodes.length)))
-      const movieSpacingY = canvasHeight * 0.8 / Math.max(1, Math.ceil(Math.sqrt(movieNodes.length)))
+      // 使用放射状布局
+      const radiusPerMovie = Math.min(canvasWidth, canvasHeight) * 0.35 / Math.max(1, movieNodes.length)
 
       // 处理电影节点
       movieNodes.forEach((movieNode, index) => {
         if (!movieNode.id) return
 
-        // 计算电影节点位置（网格布局）
-        const row = Math.floor(index / Math.ceil(Math.sqrt(movieNodes.length)))
-        const col = index % Math.ceil(Math.sqrt(movieNodes.length))
-        const movieX = centerX - (movieSpacingX * (Math.ceil(Math.sqrt(movieNodes.length)) - 1) / 2) + col * movieSpacingX
-        const movieY = centerY - (movieSpacingY * (Math.ceil(Math.sqrt(movieNodes.length)) - 1) / 2) + row * movieSpacingY
+        // 计算电影节点位置（放射状布局）
+        const angle = (index / movieNodes.length) * 2 * Math.PI
+        const distance = radiusPerMovie * (index + 1)
+        const movieX = centerX + distance * Math.cos(angle)
+        const movieY = centerY + distance * Math.sin(angle)
 
         // 添加电影节点
         nodes.push({
@@ -327,9 +326,9 @@ export default {
           // 检查是否已经添加过该子节点（避免重复）
           if (nodes.find(n => n.id === childId)) return
 
-          // 计算子节点位置（围绕电影节点）
+          // 计算子节点位置（围绕电影节点，放射状分布）
           const angle = (childIndex / childNodeIds.length) * Math.PI * 2
-          const radius = Math.min(movieSpacingX, movieSpacingY) * 0.6
+          const radius = 80 // 固定半径，确保子节点围绕父节点合适距离
           const childX = movieX + radius * Math.cos(angle)
           const childY = movieY + radius * Math.sin(angle)
 
@@ -452,8 +451,8 @@ export default {
             draggable: true,
             symbol: 'circle',
             symbolSize: 40,
-            edgeSymbol: ['circle', 'arrow'],
-            edgeSymbolSize: [4, 10],
+            edgeSymbol: ['circle', 'circle'],
+            edgeSymbolSize: [4, 4],
             cursor: 'move',
             label: {
               show: true,
@@ -473,8 +472,8 @@ export default {
             lineStyle: {
               color: 'source',
               width: 1.5,
-              curveness: 0.2,
-              opacity: 0.8
+              curveness: 0.1,
+              opacity: 0.6
             },
             emphasis: {
               focus: 'adjacency',
@@ -536,7 +535,7 @@ export default {
             series: [{
               data: allNodes
             }]
-          }, false)
+          }, true) // 使用true参数强制更新
         }
 
         // 如果是子节点被拖动，检查它是否属于多个父节点
@@ -576,7 +575,7 @@ export default {
             series: [{
               data: allNodes
             }]
-          }, false)
+          }, true) // 使用true参数强制更新
         }
 
         // 更新起始位置

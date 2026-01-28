@@ -6,19 +6,24 @@
         <el-card shadow="hover">
           <div slot="header" class="card-header">
             <span>电影浏览</span>
-            <el-select v-model="selectedType" placeholder="选择类型" style="margin-right: 10px; float: right;" @change="handleTypeChange">
-              <el-option label="全部" value=""></el-option>
-              <el-option label="剧情" value="剧情"></el-option>
-              <el-option label="喜剧" value="喜剧"></el-option>
-              <el-option label="动作" value="动作"></el-option>
-              <el-option label="爱情" value="爱情"></el-option>
-              <el-option label="科幻" value="科幻"></el-option>
-              <el-option label="悬疑" value="悬疑"></el-option>
-              <el-option label="惊悚" value="惊悚"></el-option>
-              <el-option label="恐怖" value="恐怖"></el-option>
-              <el-option label="动画" value="动画"></el-option>
-              <el-option label="纪录片" value="纪录片"></el-option>
-            </el-select>
+            <div class="header-controls">
+              <!-- 移除原有独立按钮，整合到下拉框中 -->
+              <el-select v-model="selectedType" placeholder="选择类型" style="margin-right: 10px;" @change="handleTypeChange">
+                <el-option label="全部" value=""></el-option>
+                <!-- 新增「有评论的电影」选项 -->
+                <el-option label="有评论的电影" value="with_comments"></el-option>
+                <el-option label="剧情" value="剧情"></el-option>
+                <el-option label="喜剧" value="喜剧"></el-option>
+                <el-option label="动作" value="动作"></el-option>
+                <el-option label="爱情" value="爱情"></el-option>
+                <el-option label="科幻" value="科幻"></el-option>
+                <el-option label="悬疑" value="悬疑"></el-option>
+                <el-option label="惊悚" value="惊悚"></el-option>
+                <el-option label="恐怖" value="恐怖"></el-option>
+                <el-option label="动画" value="动画"></el-option>
+                <el-option label="纪录片" value="纪录片"></el-option>
+              </el-select>
+            </div>
           </div>
           <el-row :gutter="12">
             <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="movie in movies" :key="movie.id" class="movie-card">
@@ -59,10 +64,10 @@
 
                 <div class="movie-actions">
                   <el-button
-                    type="primary"
-                    size="mini"
-                    @click.stop="showDetailedMovieComments(movie)"
-                    class="action-button"
+                      type="primary"
+                      size="mini"
+                      @click.stop="showDetailedMovieComments(movie)"
+                      class="action-button"
                   >
                     <i class="el-icon-chat-dot-round"></i> 评论详情
                   </el-button>
@@ -72,12 +77,12 @@
           </el-row>
           <div class="pagination-container" v-if="total > 0">
             <el-pagination
-              @current-change="handlePageChange"
-              :current-page="currentPage"
-              :page-size="pageSize"
-              layout="prev, pager, next, jumper"
-              :total="total"
-              :background="true"
+                @current-change="handlePageChange"
+                :current-page="currentPage"
+                :page-size="pageSize"
+                layout="prev, pager, next, jumper"
+                :total="total"
+                :background="true"
             ></el-pagination>
           </div>
         </el-card>
@@ -106,20 +111,20 @@
 
             <div class="input-area">
               <el-input
-                v-model="userInput"
-                :rows="3"
-                type="textarea"
-                placeholder="告诉我您喜欢什么类型的电影，例如：'推荐一些高分科幻电影' 或 '我想看张艺谋导演的电影'"
-                maxlength="200"
-                show-word-limit
-                @keyup.enter.native="handleSendRequest($event)"
+                  v-model="userInput"
+                  :rows="3"
+                  type="textarea"
+                  placeholder="告诉我您喜欢什么类型的电影，例如：'推荐一些高分科幻电影' 或 '我想看张艺谋导演的电影'"
+                  maxlength="200"
+                  show-word-limit
+                  @keyup.enter.native="handleSendRequest($event)"
               ></el-input>
               <el-button
-                type="primary"
-                :loading="aiLoading"
-                @click="sendRecommendRequest"
-                :disabled="!userInput.trim()"
-                class="send-button"
+                  type="primary"
+                  :loading="aiLoading"
+                  @click="sendRecommendRequest"
+                  :disabled="!userInput.trim()"
+                  class="send-button"
               >
                 <i class="el-icon-position"></i> 获取推荐
               </el-button>
@@ -138,10 +143,10 @@
 
     <!-- 电影详情弹窗 -->
     <el-dialog
-      title="电影详情"
-      :visible.sync="movieDetailDialogVisible"
-      width="60%"
-      :before-close="closeMovieDetailDialog">
+        title="电影详情"
+        :visible.sync="movieDetailDialogVisible"
+        width="60%"
+        :before-close="closeMovieDetailDialog">
       <div v-if="currentMovie" class="movie-detail-content">
         <h3>{{ currentMovie.movieName || currentMovie.name || '未知电影' }}</h3>
         <el-descriptions :column="1" border>
@@ -162,10 +167,10 @@
 
     <!-- 评论弹窗 -->
     <el-dialog
-      title="电影评论"
-      :visible.sync="commentDialogVisible"
-      width="60%"
-      :before-close="closeCommentDialog">
+        title="电影评论"
+        :visible.sync="commentDialogVisible"
+        width="60%"
+        :before-close="closeCommentDialog">
       <div v-if="currentMovie">
         <h3>{{ currentMovie.movieName || currentMovie.name }} 的评论</h3>
         <div v-if="comments.length > 0" class="comments-list">
@@ -202,7 +207,7 @@ export default {
       loading: false,
       selectedType: '',
       commentDialogVisible: false,
-      movieDetailDialogVisible: false,  // 新增电影详情弹窗可见性变量
+      movieDetailDialogVisible: false,
       currentMovie: null,
       comments: [],
       // AI助手相关数据
@@ -214,7 +219,9 @@ export default {
       ],
       userInput: '',
       aiLoading: false,
-      currentUser: null
+      currentUser: null,
+      // 新增/确保该变量存在
+      isShowingCommentsOnly: false
     }
   },
   created() {
@@ -314,9 +321,9 @@ export default {
                 directors: movie.directors || movie.director || [],
                 actors: movie.actors || movie.actor || [],
                 directorList: movie.directorString ? movie.directorString.split('|') :
-                             movie.director ? (typeof movie.director === 'string' ? movie.director.split('|') : []) : [],
+                    movie.director ? (typeof movie.director === 'string' ? movie.director.split('|') : []) : [],
                 actorList: movie.actorString ? movie.actorString.split('|') :
-                          movie.actor ? (typeof movie.actor === 'string' ? movie.actor.split('|') : []) : []
+                    movie.actor ? (typeof movie.actor === 'string' ? movie.actor.split('|') : []) : []
               };
             }) || [];
 
@@ -341,8 +348,8 @@ export default {
             this.chatMessages.push({
               role: 'assistant',
               content: responseText + '<br><br>以下是为您推荐的电影：<br>' +
-                      this.movies.slice(0, 3).map(m => `• ${m.movieName || m.name}`).join('<br>') +
-                      (this.movies.length > 3 ? `<br>... 还有${this.movies.length - 3}部电影` : '')
+                  this.movies.slice(0, 3).map(m => `• ${m.movieName || m.name}`).join('<br>') +
+                  (this.movies.length > 3 ? `<br>... 还有${this.movies.length - 3}部电影` : '')
             });
           } else {
             this.chatMessages.push({
@@ -352,8 +359,8 @@ export default {
           }
         } else {
           this.chatMessages.push({
-              role: 'assistant',
-              content: '抱歉，未能理解您的需求，请尝试用更清晰的语言描述您的电影偏好。'
+            role: 'assistant',
+            content: '抱歉，未能理解您的需求，请尝试用更清晰的语言描述您的电影偏好。'
           });
         }
       } catch (error) {
@@ -385,11 +392,11 @@ export default {
         let url;
 
         // 根据是否选择了类型来决定使用哪个API端点
-        if (this.selectedType) {
-          // 使用按类型获取电影的API
+        if (this.selectedType && this.selectedType !== 'with_comments') {
+          // 使用按类型获取电影的API（排除有评论的电影选项）
           url = `/movie/by-type/${encodeURIComponent(this.selectedType)}?page=${this.currentPage - 1}&size=${this.pageSize}`;
         } else {
-          // 使用获取所有电影的API
+          // 使用获取所有电影的API（默认行为）
           url = `/movie/list?page=${this.currentPage - 1}&size=${this.pageSize}`;
         }
 
@@ -411,9 +418,9 @@ export default {
               actors: movie.actors || movie.actor || [],
               // 添加解析后的列表
               directorList: movie.directorString ? movie.directorString.split('|') :
-                           movie.director ? (typeof movie.director === 'string' ? movie.director.split('|') : []) : [],
+                  movie.director ? (typeof movie.director === 'string' ? movie.director.split('|') : []) : [],
               actorList: movie.actorString ? movie.actorString.split('|') :
-                        movie.actor ? (typeof movie.actor === 'string' ? movie.actor.split('|') : []) : []
+                  movie.actor ? (typeof movie.actor === 'string' ? movie.actor.split('|') : []) : []
             };
           }) || [];
           // 尝试从响应中获取总数量
@@ -434,19 +441,83 @@ export default {
         this.loading = false;
       }
     },
+
+    // 切换到只显示有评论的电影
+    async switchToMoviesWithComments() {
+      this.loading = true;
+      try {
+        // 移除原有重置selectedType的逻辑，保留选中状态
+        this.isShowingCommentsOnly = true;
+
+        // 调用API获取有评论的电影
+        const response = await request.get(`/movie/movies-with-comments?page=${this.currentPage - 1}&size=${this.pageSize}`);
+        if (response && response.code === 200 && response.data) {
+          // 处理电影数据，确保字段映射正确
+          this.movies = response.data.map(movie => {
+            return {
+              ...movie,
+              id: movie.id || 0,
+              movieId: movie.movieId || null,
+              movieName: movie.movieName || movie.name || '未知电影',
+              type: movie.type || '未知',
+              direction: movie.direction || movie.region || '未知',
+              rating: movie.rating || movie.movie_rating || movie.movieRating || '暂无评分',
+              instruction: movie.instruction || '',
+              directors: movie.directors || movie.director || [],
+              actors: movie.actors || movie.actor || [],
+              // 添加解析后的列表
+              directorList: movie.directorString ? movie.directorString.split('|') :
+                  movie.director ? (typeof movie.director === 'string' ? movie.director.split('|') : []) : [],
+              actorList: movie.actorString ? movie.actorString.split('|') :
+                  movie.actor ? (typeof movie.actor === 'string' ? movie.actor.split('|') : []) : []
+            };
+          }) || [];
+          // 尝试从响应中获取总数量
+          this.total = response.total || response.data.length;
+          // 显示成功消息
+          this.$message.success(`已加载 ${this.movies.length} 部有评论的电影`);
+        } else {
+          this.movies = [];
+          this.total = 0;
+          this.$message.error('未找到有评论的电影数据');
+        }
+      } catch (error) {
+        console.error('加载有评论的电影列表失败:', error);
+        this.movies = [];
+        this.total = 0;
+        this.$message.error('加载有评论的电影列表失败，请重试');
+      } finally {
+        this.loading = false;
+      }
+    },
+
     // 处理分页变化
     handlePageChange(page) {
       this.currentPage = page;
-      this.loadAllMovies();
+      // 根据选中类型判断加载逻辑
+      if (this.selectedType === 'with_comments') {
+        this.switchToMoviesWithComments();
+      } else {
+        this.loadAllMovies();
+      }
     },
+
     // 处理类型选择变化
     handleTypeChange() {
       // 当类型改变时，重置到第一页
       this.currentPage = 1;
-      this.loadAllMovies();
+
+      if (this.selectedType === 'with_comments') {
+        // 加载有评论的电影
+        this.switchToMoviesWithComments();
+      } else {
+        // 重置评论优先状态
+        this.isShowingCommentsOnly = false;
+        this.loadAllMovies();
+      }
     },
 
-    // 加载有评论的电影
+    // 加载有评论的电影（保留原有方法，兼容逻辑）
     async loadMoviesWithComments() {
       this.loading = true;
       try {
@@ -467,9 +538,9 @@ export default {
               actors: movie.actors || movie.actor || [],
               // 添加解析后的列表
               directorList: movie.directorString ? movie.directorString.split('|') :
-                           movie.director ? (typeof movie.director === 'string' ? movie.director.split('|') : []) : [],
+                  movie.director ? (typeof movie.director === 'string' ? movie.director.split('|') : []) : [],
               actorList: movie.actorString ? movie.actorString.split('|') :
-                        movie.actor ? (typeof movie.actor === 'string' ? movie.actor.split('|') : []) : []
+                  movie.actor ? (typeof movie.actor === 'string' ? movie.actor.split('|') : []) : []
             };
           }) || [];
           // 尝试从响应中获取总数量
@@ -592,7 +663,7 @@ export default {
         console.log('请求的电影ID:', movieId);
         const response = await request.get(`/movie/movie-comments/${movieId}`);
         console.log('API响应:', response);
-        
+
         if (response && response.code === 200 && response.data) {
           // 直接使用后端返回的数据结构，确保所有必需字段都有默认值
           const processedComments = response.data.map(item => {
@@ -606,12 +677,12 @@ export default {
               comment_add_time: item['comment_add_time'] !== undefined && item['comment_add_time'] !== null ? item['comment_add_time'] : '未知'
             };
           });
-          
+
           console.log('处理后的评论数据:', processedComments);
-          
+
           // 使用Vue.set确保响应式更新
           this.comments = processedComments;
-          
+
           // 强制更新视图
           this.$nextTick(() => {
             this.commentDialogVisible = true;
@@ -639,7 +710,7 @@ export default {
       this.currentMovie = null;
       this.comments = [];
     },
-    
+
     // 关闭电影详情弹窗
     closeMovieDetailDialog() {
       this.movieDetailDialogVisible = false;
@@ -700,6 +771,14 @@ export default {
   font-weight: 600;
   color: #333;
   padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
 }
 
 .ai-card-header {
@@ -722,23 +801,15 @@ export default {
 }
 
 .movie-item {
-  height: 100%;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-  border-radius: 12px;
-  overflow: hidden;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
-
-/* 移除电影卡片头部样式 */
 
 .movie-content {
   padding: 20px;
-}
-
-.movie-item {
-  height: auto;
-  min-height: 280px;
+  height: calc(100% - 60px); /* 减去底部按钮区域的空间 */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -779,6 +850,7 @@ export default {
   margin-bottom: 15px;
   height: 48px; /* 固定导演和演员信息区域高度 */
   overflow: hidden;
+  flex-grow: 1;
 }
 
 .info-item {
@@ -806,8 +878,8 @@ export default {
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: 20px;
-  min-height: 67px;
   height: 67px; /* 固定高度确保3行一致 */
+  flex-grow: 1;
 }
 
 .movie-actions {
@@ -815,6 +887,7 @@ export default {
   justify-content: space-between;
   padding: 0 20px 20px;
   gap: 10px;
+  margin-top: auto; /* 确保按钮始终在底部 */
 }
 
 .action-button {
@@ -985,6 +1058,11 @@ export default {
   .movie-browse-container {
     max-width: 100%;
   }
+
+  .header-controls {
+    flex-direction: column;
+    align-items: flex-end;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1019,10 +1097,12 @@ export default {
     align-items: flex-start;
   }
 
-  .el-select {
-    margin-right: 0 !important;
+  .header-controls {
+    width: 100%;
     margin-top: 10px;
-    float: none !important;
+  }
+
+  .el-select {
     width: 100%;
   }
 }

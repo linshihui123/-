@@ -1,84 +1,76 @@
 <template>
   <div id="app">
     <el-container style="min-height: 100vh;">
-<el-header class="header-container">
-  <div class="header-content">
-    <div class="logo-section">
-      <i class="el-icon-film" style="font-size: 24px; margin-right: 10px;"></i>
-      <span class="logo-text gradient-text">电影推荐系统</span>
-    </div>
-    <div class="nav-section">
-      <template v-if="!currentUser">
-        <el-button
-          type="primary"
-          plain
-          @click="showLoginDialog"
-          class="auth-button"
-        >
-          <i class="el-icon-user"></i> 登录/注册
-        </el-button>
-      </template>
-      <template v-else>
-        <el-button-group class="nav-buttons">
-          <el-button
-            type="primary"
-            plain
-            :class="{ 'nav-active': activeTab === 'recommend' }"
-            @click="switchTab('recommend')"
-          >
-            <i class="el-icon-star-on"></i> 推荐
-          </el-button>
-          <el-button
-            type="primary"
-            plain
-            :class="{ 'nav-active': activeTab === 'browse' }"
-            @click="switchTab('browse')"
-          >
-            <i class="el-icon-search"></i> 浏览
-          </el-button>
-          <el-button
-            type="primary"
-            plain
-            :class="{ 'nav-active': activeTab === 'graph' }"
-            @click="switchTab('graph')"
-          >
-            <i class="el-icon-s-data"></i> 知识图谱
-          </el-button>
-        </el-button-group>
-        <span class="user-welcome">欢迎，{{ currentUser.username }}</span>
-        <el-button
-          type="success"
-          plain
-          @click="openAIAssistant"
-          class="ai-assistant-button"
-        >
-          <i class="el-icon-chat-dot-round"></i> AI助手
-        </el-button>
-        <el-button
-          type="info"
-          plain
-          @click="logout"
-          class="logout-button"
-        >
-          <i class="el-icon-switch-button"></i> 退出
-        </el-button>
-      </template>
-    </div>
-  </div>
-</el-header>
+      <el-header class="header-container">
+        <div class="header-content">
+          <div class="logo-section">
+            <i class="el-icon-film" style="font-size: 24px; margin-right: 10px;"></i>
+            <span class="logo-text gradient-text">电影推荐系统</span>
+          </div>
+          <div class="nav-section">
+            <template v-if="!currentUser">
+              <el-button
+                  type="primary"
+                  plain
+                  @click="showLoginDialog"
+                  class="auth-button"
+              >
+                <i class="el-icon-user"></i> 登录/注册
+              </el-button>
+            </template>
+            <template v-else>
+              <el-button-group class="nav-buttons">
+                <!-- 移除推荐按钮 -->
+                <el-button
+                    type="primary"
+                    plain
+                    :class="{ 'nav-active': activeTab === 'browse' }"
+                    @click="switchTab('browse')"
+                >
+                  <i class="el-icon-search"></i> 浏览
+                </el-button>
+                <el-button
+                    type="primary"
+                    plain
+                    :class="{ 'nav-active': activeTab === 'graph' }"
+                    @click="switchTab('graph')"
+                >
+                  <i class="el-icon-s-data"></i> 知识图谱
+                </el-button>
+              </el-button-group>
+              <span class="user-welcome">欢迎，{{ currentUser.username }}</span>
+              <el-button
+                  type="success"
+                  plain
+                  @click="openAIAssistant"
+                  class="ai-assistant-button"
+              >
+                <i class="el-icon-chat-dot-round"></i> AI助手
+              </el-button>
+              <el-button
+                  type="info"
+                  plain
+                  @click="logout"
+                  class="logout-button"
+              >
+                <i class="el-icon-switch-button"></i> 退出
+              </el-button>
+            </template>
+          </div>
+        </div>
+      </el-header>
       <el-main>
         <!-- 用户未登录时直接显示浏览界面 -->
         <div v-if="!currentUser && !activeTab" class="browse-container">
           <div class="layout-wrapper">
             <div class="main-content">
               <MovieBrowse
-                :movies="currentMovies"
-                :loading="loading"
-                :show-title="true"
-                @movie-click="handleMovieClick"
+                  :movies="currentMovies"
+                  :loading="loading"
+                  :show-title="true"
+                  @movie-click="handleMovieClick"
               />
             </div>
-
           </div>
         </div>
 
@@ -96,13 +88,7 @@
                   <span><i class="el-icon-menu"></i> 功能导航</span>
                 </div>
                 <div class="features-grid">
-                  <el-card class="feature-card" @click.native="switchTab('recommend')">
-                    <div class="feature-content">
-                      <i class="el-icon-star-on feature-icon" style="color: #e6a23c;"></i>
-                      <h3>个性化推荐</h3>
-                      <p>基于AI算法的智能电影推荐</p>
-                    </div>
-                  </el-card>
+                  <!-- 移除个性化推荐卡片 -->
                   <el-card class="feature-card" @click.native="switchTab('browse')">
                     <div class="feature-content">
                       <i class="el-icon-search feature-icon" style="color: #409eff;"></i>
@@ -123,33 +109,17 @@
           </el-row>
         </div>
 
-        <!-- 推荐页面 -->
-        <div v-if="activeTab === 'recommend'" class="recommend-container">
-          <div class="layout-wrapper">
-            <div class="main-content">
-              <MovieList
-                :movies="currentMovies"
-                :loading="loading"
-                :show-title="showTitle"
-                @movie-click="handleMovieClick"
-              />
-            </div>
-
-          </div>
-        </div>
-
         <!-- 浏览页面 -->
         <div v-if="activeTab === 'browse'" class="browse-container">
           <div class="layout-wrapper">
             <div class="main-content">
               <MovieBrowse
-                :movies="currentMovies"
-                :loading="loading"
-                :show-title="true"
-                @movie-click="handleMovieClick"
+                  :movies="currentMovies"
+                  :loading="loading"
+                  :show-title="true"
+                  @movie-click="handleMovieClick"
               />
             </div>
-
           </div>
         </div>
 
@@ -173,39 +143,39 @@
 
         <!-- 用户认证弹窗 -->
         <el-dialog
-          :title="authDialogTitle"
-          :visible.sync="authDialogVisible"
-          width="40%"
-          :close-on-click-modal="false"
-          :close-on-press-escape="false"
+            :title="authDialogTitle"
+            :visible.sync="authDialogVisible"
+            width="40%"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
         >
           <UserAuth @login-success="handleLoginSuccess" />
         </el-dialog>
       </el-main>
-<el-footer class="footer-container">
-  <div class="footer-content">
-    <div class="footer-text">
-      <i class="el-icon-film" style="margin-right: 8px;"></i>
-      电影推荐系统 ©2025
-    </div>
-    <div class="footer-links">
-      <span class="footer-link">关于我们</span>
-      <span class="footer-link">隐私政策</span>
-      <span class="footer-link">帮助中心</span>
-    </div>
-  </div>
-</el-footer>
+      <el-footer class="footer-container">
+        <div class="footer-content">
+          <div class="footer-text">
+            <i class="el-icon-film" style="margin-right: 8px;"></i>
+            电影推荐系统 ©2025
+          </div>
+          <div class="footer-links">
+            <span class="footer-link">关于我们</span>
+            <span class="footer-link">隐私政策</span>
+            <span class="footer-link">帮助中心</span>
+          </div>
+        </div>
+      </el-footer>
     </el-container>
   </div>
 </template>
 
 <script>
-
 import MovieList from './components/MovieList.vue'
 import MovieBrowse from './components/MovieBrowse.vue'
 import UserAuth from './components/UserAuth.vue'
 import KnowledgeGraph from './components/KnowledgeGraph.vue'
-import { getRecommendMoviesPost, getMovieDetail } from './api/recommend'
+// 移除推荐相关接口导入
+import { getMovieDetail } from './api/recommend'
 import axios from 'axios'
 
 export default {
@@ -216,52 +186,45 @@ export default {
     UserAuth,
     KnowledgeGraph
   },
-    data() {
-      return {
-        recommendMovies: [],
-        allMovies: [],
-        currentMovies: [], // 当前显示的电影列表
-        loading: false,
-        detailDialogVisible: false,
-        selectedMovie: null,
-        showTitle: true,
-        authDialogVisible: false,
-        currentUser: null,
-        currentUserId: null,
-        activeTab: null, // 默认为null，显示首页
-        // 知识图谱预览相关数据
-        graphPreviewNodes: [],
-        graphStats: {
-          movies: 0,
-          directors: 0,
-          actors: 0
+  data() {
+    return {
+      // 移除推荐电影列表
+      allMovies: [],
+      currentMovies: [], // 当前显示的电影列表
+      loading: false,
+      detailDialogVisible: false,
+      selectedMovie: null,
+      showTitle: true,
+      authDialogVisible: false,
+      currentUser: null,
+      currentUserId: null,
+      activeTab: null, // 默认为null，显示首页
+      // 知识图谱预览相关数据
+      graphPreviewNodes: [],
+      graphStats: {
+        movies: 0,
+        directors: 0,
+        actors: 0
+      },
+      // 移除features中的智能推荐项
+      features: [
+        {
+          id: 2,
+          icon: 'el-icon-s-data',
+          title: '知识图谱',
+          description: '电影关系可视化展示',
+          color: '#409eff'
         },
-        // 首页特性列表
-        features: [
-          {
-            id: 1,
-            icon: 'el-icon-star-on',
-            title: '智能推荐',
-            description: '基于AI算法的个性化推荐',
-            color: '#e6a23c'
-          },
-          {
-            id: 2,
-            icon: 'el-icon-s-data',
-            title: '知识图谱',
-            description: '电影关系可视化展示',
-            color: '#409eff'
-          },
-          {
-            id: 3,
-            icon: 'el-icon-search',
-            title: '智能搜索',
-            description: '快速找到您想看的电影',
-            color: '#67c23a'
-          }
-        ]
-      }
-    },
+        {
+          id: 3,
+          icon: 'el-icon-search',
+          title: '智能搜索',
+          description: '快速找到您想看的电影',
+          color: '#67c23a'
+        }
+      ]
+    }
+  },
   computed: {
     authDialogTitle() {
       return this.currentUser ? '用户中心' : '登录/注册';
@@ -356,43 +319,12 @@ export default {
         this.$message.success(`欢迎回来，${username}！`);
       });
 
-      // 获取推荐电影
-      this.getRecommendMoviesForUser();
-
+      // 移除获取推荐电影的调用
       // 获取知识图谱预览数据
       this.loadGraphPreviewData();
 
       // 强制更新视图
       this.$forceUpdate();
-    },
-
-    // 获取推荐电影
-    async getRecommendMoviesForUser() {
-      if (!this.currentUser || !this.currentUserId) return;
-
-      this.loading = true;
-      try {
-        // 使用POST方式发送推荐请求，支持请求体中的intent参数
-        const res = await getRecommendMoviesPost({
-          userId: this.currentUserId,
-          topN: 6 // 只获取6部电影用于首页展示
-        });
-        this.recommendMovies = res.data || [];
-      } catch (error) {
-        console.error('获取推荐结果失败！', error);
-        // 如果推荐失败，获取一些热门电影作为备选
-        try {
-          const response = await axios.get(`/api/movie/list?page=0&size=6`);
-          if (response.data && response.data.data) {
-            this.recommendMovies = response.data.data || [];
-          }
-        } catch (e) {
-          console.error('获取热门电影失败！', e);
-          this.recommendMovies = [];
-        }
-      } finally {
-        this.loading = false;
-      }
     },
 
     // 加载知识图谱预览数据
@@ -479,33 +411,7 @@ export default {
       this.activeTab = tab;
     },
 
-    // 处理推荐请求
-    async handleGetRecommend(params) {
-      // 如果用户未登录，提示登录
-      if (!this.currentUser) {
-        this.$message.warning('请先登录以获得个性化推荐');
-        this.authDialogVisible = true;
-        return;
-      }
-
-      this.loading = true;
-      this.showTitle = true; // 显示标题
-      try {
-        // 使用POST方式发送推荐请求，支持请求体中的intent参数
-        const res = await getRecommendMoviesPost({
-          userId: params.userId || this.currentUserId,
-          topN: params.topN,
-          intent: params.intent
-        });
-        this.currentMovies = res.data || [];
-        this.recommendMovies = this.currentMovies;
-      } catch (error) {
-        this.$message.error('获取推荐结果失败！')
-        console.error(error)
-      } finally {
-        this.loading = false
-      }
-    },
+    // 移除handleGetRecommend方法
 
     // 获取全部电影
     async handleGetAllMovies(params) {
@@ -754,13 +660,13 @@ export default {
 }
 
 /* 导航按钮样式 */
-  .nav-active {
-    background: linear-gradient(135deg, #409EFF, #337ecc) !important;
-    border-color: #409EFF !important;
-    color: #fff !important;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
-  }
+.nav-active {
+  background: linear-gradient(135deg, #409EFF, #337ecc) !important;
+  border-color: #409EFF !important;
+  color: #fff !important;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+}
 
 /* 头部样式 */
 .header-container {

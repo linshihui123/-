@@ -118,27 +118,6 @@ public class MovieController {
         return recommendationService.getMoviesByType(type, page, size);
     }
 
-    /**
-     * 根据导演获取电影
-     */
-    @GetMapping("/by-director/{directorName}")
-    public Result<List<MovieNode>> getMoviesByDirector(
-            @PathVariable String directorName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return recommendationService.getMoviesByDirector(directorName, page, size);
-    }
-
-    /**
-     * 根据演员获取电影
-     */
-    @GetMapping("/by-actor/{actorName}")
-    public Result<List<MovieNode>> getMoviesByActor(
-            @PathVariable String actorName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return recommendationService.getMoviesByActor(actorName, page, size);
-    }
     
     /**
      * 根据电影ID获取评论列表
