@@ -32,6 +32,14 @@
                 <el-button
                     type="primary"
                     plain
+                    :class="{ 'nav-active': activeTab === 'collaborative' }"
+                    @click="switchTab('collaborative')"
+                >
+                  <i class="el-icon-user"></i> 推荐
+                </el-button>
+                <el-button
+                    type="primary"
+                    plain
                     :class="{ 'nav-active': activeTab === 'graph' }"
                     @click="switchTab('graph')"
                 >
@@ -39,14 +47,7 @@
                 </el-button>
               </el-button-group>
               <span class="user-welcome">欢迎，{{ currentUser.username }}</span>
-              <el-button
-                  type="success"
-                  plain
-                  @click="openAIAssistant"
-                  class="ai-assistant-button"
-              >
-                <i class="el-icon-chat-dot-round"></i> AI助手
-              </el-button>
+
               <el-button
                   type="info"
                   plain
@@ -96,6 +97,13 @@
                       <p>按类型、评分等条件浏览电影</p>
                     </div>
                   </el-card>
+                  <el-card class="feature-card" @click.native="switchTab('collaborative')">
+                    <div class="feature-content">
+                      <i class="el-icon-user feature-icon" style="color: #e6a23c;"></i>
+                      <h3>协同过滤推荐</h3>
+                      <p>基于用户评分相似性的推荐</p>
+                    </div>
+                  </el-card>
                   <el-card class="feature-card" @click.native="switchTab('graph')">
                     <div class="feature-content">
                       <i class="el-icon-s-data feature-icon" style="color: #67c23a;"></i>
@@ -117,6 +125,28 @@
                   :movies="currentMovies"
                   :loading="loading"
                   :show-title="true"
+                  @movie-click="handleMovieClick"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 协同过滤推荐页面 -->
+        <div v-if="activeTab === 'collaborative'" class="browse-container">
+          <div class="layout-wrapper">
+            <div class="main-content">
+              <CollaborativeFilteringRecommend
+                  @movie-click="handleMovieClick"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 协同过滤推荐页面 -->
+        <div v-if="activeTab === 'collaborative'" class="browse-container">
+          <div class="layout-wrapper">
+            <div class="main-content">
+              <CollaborativeFilteringRecommend
                   @movie-click="handleMovieClick"
               />
             </div>
@@ -174,6 +204,7 @@ import MovieList from './components/MovieList.vue'
 import MovieBrowse from './components/MovieBrowse.vue'
 import UserAuth from './components/UserAuth.vue'
 import KnowledgeGraph from './components/KnowledgeGraph.vue'
+import CollaborativeFilteringRecommend from './components/CollaborativeFilteringRecommend.vue'
 // 移除推荐相关接口导入
 import { getMovieDetail } from './api/recommend'
 import axios from 'axios'
@@ -184,7 +215,8 @@ export default {
     MovieList,
     MovieBrowse,
     UserAuth,
-    KnowledgeGraph
+    KnowledgeGraph,
+    CollaborativeFilteringRecommend
   },
   data() {
     return {

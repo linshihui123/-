@@ -50,58 +50,9 @@ public class MovieRecommendationService {
     private Double kgWeight;
 
     /**
-     * 增强版推荐入口（支持意图驱动）
+     *
      */
-    public Result<List<MovieNode>> recommendMovies(Integer userId, int topN, RecommendIntent intent) {
-        // 参数校验
-        if (userId == null || userId <= 0 || topN <= 0 || topN > 50) {
-            log.error("推荐参数异常：userId={}, topN={}", userId, topN);
-            return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "参数错误：用户ID需为正整数，推荐数量1-50");
-        }
 
-        try {
-            // 1. 基础推荐结果
-            List<MovieNode> cfRecommend = collaborativeFilteringRecommend(userId);
-            List<MovieNode> contentRecommend = contentBasedRecommend(userId);
-            List<MovieNode> kgRecommend = knowledgeGraphPathRecommend(userId);
-
-            // 2. 意图驱动过滤（新增）
-            if (intent != null && !"unknown".equals(intent.getIntentType())) {
-                cfRecommend = filterByIntent(cfRecommend, intent);
-                contentRecommend = filterByIntent(contentRecommend, intent);
-                kgRecommend = filterByIntent(kgRecommend, intent);
-            }
-
-            // 3. 融合结果（加权投票）
-            Map<Integer, Double> movieScoreMap = new HashMap<>();
-            addToScoreMap(cfRecommend, movieScoreMap, cfWeight);
-            addToScoreMap(contentRecommend, movieScoreMap, contentWeight);
-            addToScoreMap(kgRecommend, movieScoreMap, kgWeight);
-
-            // 4. 排序取TopN + 兜底处理
-            List<MovieNode> finalRecommend = movieScoreMap.entrySet().stream()
-                    .sorted((e1, e2) -> Double.compare(e2.getValue(), e1.getValue()))
-                    .limit(topN)
-                    .map(entry -> {
-                        Filter filter = new Filter("infoId", ComparisonOperator.EQUALS, entry.getKey());
-                        Iterable<MovieNode> iterable = neo4jSession.loadAll(MovieNode.class, filter);
-                        return iterable.iterator().hasNext() ? iterable.iterator().next() : null;
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-
-            // 兜底：无推荐结果时返回高评分热门电影
-            if (CollectionUtils.isEmpty(finalRecommend)) {
-                finalRecommend = getDefaultHighRatingMovies(topN);
-                log.warn("用户{}无个性化推荐，返回默认热门电影", userId);
-            }
-
-            return Result.success(finalRecommend);
-        } catch (Exception e) {
-            log.error("推荐失败：userId={}", userId, e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "推荐服务异常，请重试");
-        }
-    }
 
     /**
      * 获取所有电影列表（分页支持）
@@ -515,7 +466,7 @@ public class MovieRecommendationService {
     /**
      * 增强版协同过滤（UserCF）
      */
-    private List<MovieNode> collaborativeFilteringRecommend(Integer userId) {
+    public List<MovieNode> collaborativeFilteringRecommend(Integer userId) {
         // 步骤1：获取目标用户已评分电影
         List<Integer> ratedMovieIds = getUserRatedMovieIds(userId);
         if (CollectionUtils.isEmpty(ratedMovieIds)) {
@@ -559,7 +510,7 @@ public class MovieRecommendationService {
     }
 
     /**
-     * 增强版内容推荐（含意图过滤）
+     * 增强版内容推荐
      */
     private List<MovieNode> contentBasedRecommend(Integer userId) {
         List<MovieNode> userLikedMovies = getUserLikedMovies(userId);
@@ -729,6 +680,20 @@ public class MovieRecommendationService {
                 .collect(Collectors.toList());
     }
 
+    // 根据用户名获取用户ID
+    public Integer getUserIdByUsername(String username) {
+        try {
+            org.example.model.User user = userMapper.selectByUsername(username);
+            if (user != null) {
+                return user.getUserid();
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("根据用户名获取用户ID失败：username={}", username, e);
+            return null;
+        }
+    }
+    
     // 兜底方法：默认高评分电影
     private List<MovieNode> getDefaultHighRatingMovies(Integer topN) {
         String cypher = "MATCH (m:Movie) WHERE m.rating >= 8.0 RETURN m ORDER BY m.rating DESC LIMIT $topN";

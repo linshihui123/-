@@ -67,4 +67,17 @@ public class CommentController {
             return Result.error("评论删除失败");
         }
     }
+
+    /**
+     * 获取所有评论创建者
+     */
+    @GetMapping("/creators")
+    public Result<List<String>> getAllCreators() {
+        try {
+            List<String> creators = commentRepository.findAllCreators();
+            return Result.success(creators);
+        } catch (Exception e) {
+            return Result.error("获取评论创建者失败");
+        }
+    }
 }

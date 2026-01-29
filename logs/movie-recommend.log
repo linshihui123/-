@@ -1,249 +1,267 @@
-2026-01-28 08:54:19 [main] INFO  org.example.Main - Starting Main on PC00109279 with PID 37836 (D:\ideaProject\demo\target\classes started by 00109279 in D:\ideaProject\demo)
-2026-01-28 08:54:19 [main] INFO  org.example.Main - No active profile set, falling back to default profiles: default
-2026-01-28 08:54:19 [background-preinit] WARN  o.s.h.converter.json.Jackson2ObjectMapperBuilder - For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 40ms. Found 0 JPA repository interfaces.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Neo4j repositories in DEFAULT mode.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 47ms. Found 3 Neo4j repository interfaces.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 08:54:20 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 7ms. Found 0 Redis repository interfaces.
-2026-01-28 08:54:21 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8081 (http)
-2026-01-28 08:54:21 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
-2026-01-28 08:54:21 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.46]
-2026-01-28 08:54:22 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2026-01-28 08:54:22 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2503 ms
-2026-01-28 08:54:22 [main] INFO  org.hibernate.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-01-28 08:54:22 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 5.4.32.Final
-2026-01-28 08:54:22 [main] INFO  org.hibernate.annotations.common.Version - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
-2026-01-28 08:54:22 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2026-01-28 08:54:23 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2026-01-28 08:54:23 [main] INFO  org.hibernate.dialect.Dialect - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
-2026-01-28 08:54:23 [main] INFO  o.h.e.t.jta.platform.internal.JtaPlatformInitiator - HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
-2026-01-28 08:54:23 [main] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-01-28 08:54:23 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Starting Post-processing phase
-2026-01-28 08:54:23 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building byLabel lookup maps
-2026-01-28 08:54:23 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building interface class map for 9 classes
-2026-01-28 08:54:23 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Post-processing complete
-2026-01-28 08:54:24 [main] INFO  o.s.data.neo4j.mapping.Neo4jMappingContext - Neo4jMappingContext initialisation completed
-2026-01-28 08:54:24 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-01-28 08:54:25 [main] INFO  Driver - Direct driver instance 1965331677 created for server address localhost:7687
-2026-01-28 08:54:26 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService 'applicationTaskExecutor'
-2026-01-28 08:54:28 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
-2026-01-28 08:54:28 [main] INFO  org.example.Main - Started Main in 9.989 seconds (JVM running for 12.218)
-2026-01-28 08:55:41 [SpringContextShutdownHook] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Shutting down ExecutorService 'applicationTaskExecutor'
-2026-01-28 08:55:41 [SpringContextShutdownHook] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-01-28 08:55:41 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2026-01-28 08:55:41 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
-2026-01-28 08:57:21 [main] INFO  org.example.Main - Starting Main on PC00109279 with PID 37652 (D:\ideaProject\demo\target\classes started by 00109279 in D:\ideaProject\demo)
-2026-01-28 08:57:21 [main] INFO  org.example.Main - No active profile set, falling back to default profiles: default
-2026-01-28 08:57:21 [background-preinit] WARN  o.s.h.converter.json.Jackson2ObjectMapperBuilder - For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 38ms. Found 0 JPA repository interfaces.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Neo4j repositories in DEFAULT mode.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 41ms. Found 3 Neo4j repository interfaces.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 08:57:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 6ms. Found 0 Redis repository interfaces.
-2026-01-28 08:57:23 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8081 (http)
-2026-01-28 08:57:23 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
-2026-01-28 08:57:23 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.46]
-2026-01-28 08:57:23 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2026-01-28 08:57:23 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1722 ms
-2026-01-28 08:57:23 [main] INFO  org.hibernate.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-01-28 08:57:23 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 5.4.32.Final
-2026-01-28 08:57:23 [main] INFO  org.hibernate.annotations.common.Version - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
-2026-01-28 08:57:24 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2026-01-28 08:57:24 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2026-01-28 08:57:24 [main] INFO  org.hibernate.dialect.Dialect - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
-2026-01-28 08:57:24 [main] INFO  o.h.e.t.jta.platform.internal.JtaPlatformInitiator - HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
-2026-01-28 08:57:24 [main] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-01-28 08:57:24 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Starting Post-processing phase
-2026-01-28 08:57:24 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building byLabel lookup maps
-2026-01-28 08:57:24 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building interface class map for 9 classes
-2026-01-28 08:57:24 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Post-processing complete
-2026-01-28 08:57:24 [main] INFO  o.s.data.neo4j.mapping.Neo4jMappingContext - Neo4jMappingContext initialisation completed
-2026-01-28 08:57:24 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-01-28 08:57:25 [main] INFO  Driver - Direct driver instance 1235247239 created for server address localhost:7687
-2026-01-28 08:57:25 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService 'applicationTaskExecutor'
-2026-01-28 08:57:26 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
-2026-01-28 08:57:26 [main] INFO  org.example.Main - Started Main in 5.108 seconds (JVM running for 6.373)
-2026-01-28 08:59:28 [http-nio-8081-exec-2] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-01-28 08:59:28 [http-nio-8081-exec-2] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-01-28 08:59:28 [http-nio-8081-exec-2] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 10 ms
-2026-01-28 08:59:28 [http-nio-8081-exec-2] INFO  Driver - Direct driver instance 395502346 created for server address localhost:7687
-2026-01-28 09:08:37 [SpringContextShutdownHook] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Shutting down ExecutorService 'applicationTaskExecutor'
-2026-01-28 09:08:37 [SpringContextShutdownHook] INFO  org.neo4j.ogm.drivers.bolt.driver.BoltDriver - Shutting down Bolt driver org.neo4j.driver.internal.InternalDriver@1792e30a 
-2026-01-28 09:08:37 [SpringContextShutdownHook] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-01-28 09:08:37 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2026-01-28 09:08:37 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
-2026-01-28 09:08:48 [main] INFO  org.example.Main - Starting Main on PC00109279 with PID 30804 (D:\ideaProject\demo\target\classes started by 00109279 in D:\ideaProject\demo)
-2026-01-28 09:08:48 [main] INFO  org.example.Main - No active profile set, falling back to default profiles: default
-2026-01-28 09:08:48 [background-preinit] WARN  o.s.h.converter.json.Jackson2ObjectMapperBuilder - For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 34ms. Found 0 JPA repository interfaces.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Neo4j repositories in DEFAULT mode.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 39ms. Found 3 Neo4j repository interfaces.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 09:08:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 5ms. Found 0 Redis repository interfaces.
-2026-01-28 09:08:49 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8081 (http)
-2026-01-28 09:08:49 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
-2026-01-28 09:08:49 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.46]
-2026-01-28 09:08:49 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2026-01-28 09:08:49 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1366 ms
-2026-01-28 09:08:50 [main] INFO  org.hibernate.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-01-28 09:08:50 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 5.4.32.Final
-2026-01-28 09:08:50 [main] INFO  org.hibernate.annotations.common.Version - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
-2026-01-28 09:08:50 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2026-01-28 09:08:50 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2026-01-28 09:08:50 [main] INFO  org.hibernate.dialect.Dialect - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
-2026-01-28 09:08:50 [main] INFO  o.h.e.t.jta.platform.internal.JtaPlatformInitiator - HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
-2026-01-28 09:08:50 [main] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-01-28 09:08:51 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Starting Post-processing phase
-2026-01-28 09:08:51 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building byLabel lookup maps
-2026-01-28 09:08:51 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building interface class map for 9 classes
-2026-01-28 09:08:51 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Post-processing complete
-2026-01-28 09:08:51 [main] INFO  o.s.data.neo4j.mapping.Neo4jMappingContext - Neo4jMappingContext initialisation completed
-2026-01-28 09:08:51 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-01-28 09:08:51 [main] INFO  Driver - Direct driver instance 486965279 created for server address localhost:7687
-2026-01-28 09:08:51 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService 'applicationTaskExecutor'
-2026-01-28 09:08:52 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
-2026-01-28 09:08:52 [main] INFO  org.example.Main - Started Main in 4.352 seconds (JVM running for 5.613)
-2026-01-28 09:09:03 [http-nio-8081-exec-1] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-01-28 09:09:03 [http-nio-8081-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-01-28 09:09:03 [http-nio-8081-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 7 ms
-2026-01-28 09:09:03 [http-nio-8081-exec-1] INFO  Driver - Direct driver instance 990035441 created for server address localhost:7687
-2026-01-28 09:11:41 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 1291548 的评论
-2026-01-28 09:11:41 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
-2026-01-28 09:11:41 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 1291548
-2026-01-28 09:11:41 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 0 条评论
-2026-01-28 09:28:22 [SpringContextShutdownHook] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Shutting down ExecutorService 'applicationTaskExecutor'
-2026-01-28 09:28:22 [SpringContextShutdownHook] INFO  org.neo4j.ogm.drivers.bolt.driver.BoltDriver - Shutting down Bolt driver org.neo4j.driver.internal.InternalDriver@3b02bdf1 
-2026-01-28 09:28:22 [SpringContextShutdownHook] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-01-28 09:28:22 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2026-01-28 09:28:22 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
-2026-01-28 09:28:45 [main] INFO  org.example.Main - Starting Main on PC00109279 with PID 19024 (D:\ideaProject\demo\target\classes started by 00109279 in D:\ideaProject\demo)
-2026-01-28 09:28:45 [main] INFO  org.example.Main - No active profile set, falling back to default profiles: default
-2026-01-28 09:28:45 [background-preinit] WARN  o.s.h.converter.json.Jackson2ObjectMapperBuilder - For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 34ms. Found 0 JPA repository interfaces.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Neo4j repositories in DEFAULT mode.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 40ms. Found 3 Neo4j repository interfaces.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 09:28:46 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 10ms. Found 0 Redis repository interfaces.
-2026-01-28 09:28:46 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8081 (http)
-2026-01-28 09:28:46 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
-2026-01-28 09:28:46 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.46]
-2026-01-28 09:28:46 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2026-01-28 09:28:46 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1380 ms
-2026-01-28 09:28:47 [main] INFO  org.hibernate.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-01-28 09:28:47 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 5.4.32.Final
-2026-01-28 09:28:47 [main] INFO  org.hibernate.annotations.common.Version - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
-2026-01-28 09:28:47 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2026-01-28 09:28:47 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2026-01-28 09:28:47 [main] INFO  org.hibernate.dialect.Dialect - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
-2026-01-28 09:28:47 [main] INFO  o.h.e.t.jta.platform.internal.JtaPlatformInitiator - HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
-2026-01-28 09:28:47 [main] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-01-28 09:28:48 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Starting Post-processing phase
-2026-01-28 09:28:48 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building byLabel lookup maps
-2026-01-28 09:28:48 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building interface class map for 9 classes
-2026-01-28 09:28:48 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Post-processing complete
-2026-01-28 09:28:48 [main] INFO  o.s.data.neo4j.mapping.Neo4jMappingContext - Neo4jMappingContext initialisation completed
-2026-01-28 09:28:48 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-01-28 09:28:48 [main] INFO  Driver - Direct driver instance 2078681430 created for server address localhost:7687
-2026-01-28 09:28:48 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService 'applicationTaskExecutor'
-2026-01-28 09:28:49 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
-2026-01-28 09:28:49 [main] INFO  org.example.Main - Started Main in 4.496 seconds (JVM running for 5.725)
-2026-01-28 09:28:55 [http-nio-8081-exec-1] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-01-28 09:28:55 [http-nio-8081-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-01-28 09:28:55 [http-nio-8081-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 6 ms
-2026-01-28 09:28:55 [http-nio-8081-exec-1] INFO  Driver - Direct driver instance 1209678626 created for server address localhost:7687
-2026-01-28 09:38:13 [SpringContextShutdownHook] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Shutting down ExecutorService 'applicationTaskExecutor'
-2026-01-28 09:38:13 [SpringContextShutdownHook] INFO  org.neo4j.ogm.drivers.bolt.driver.BoltDriver - Shutting down Bolt driver org.neo4j.driver.internal.InternalDriver@481a3b22 
-2026-01-28 09:38:14 [SpringContextShutdownHook] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-01-28 09:38:14 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2026-01-28 09:38:14 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
-2026-01-28 09:38:25 [main] INFO  org.example.Main - Starting Main on PC00109279 with PID 25972 (D:\ideaProject\demo\target\classes started by 00109279 in D:\ideaProject\demo)
-2026-01-28 09:38:25 [main] INFO  org.example.Main - No active profile set, falling back to default profiles: default
-2026-01-28 09:38:25 [background-preinit] WARN  o.s.h.converter.json.Jackson2ObjectMapperBuilder - For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 34ms. Found 0 JPA repository interfaces.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Neo4j repositories in DEFAULT mode.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 56ms. Found 3 Neo4j repository interfaces.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
-2026-01-28 09:38:26 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 5ms. Found 0 Redis repository interfaces.
-2026-01-28 09:38:26 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8081 (http)
-2026-01-28 09:38:26 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
-2026-01-28 09:38:26 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.46]
-2026-01-28 09:38:27 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
-2026-01-28 09:38:27 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1700 ms
-2026-01-28 09:38:27 [main] INFO  org.hibernate.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-01-28 09:38:27 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 5.4.32.Final
-2026-01-28 09:38:27 [main] INFO  org.hibernate.annotations.common.Version - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
-2026-01-28 09:38:27 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2026-01-28 09:38:28 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2026-01-28 09:38:28 [main] INFO  org.hibernate.dialect.Dialect - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
-2026-01-28 09:38:28 [main] INFO  o.h.e.t.jta.platform.internal.JtaPlatformInitiator - HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
-2026-01-28 09:38:28 [main] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-01-28 09:38:28 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Starting Post-processing phase
-2026-01-28 09:38:28 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building byLabel lookup maps
-2026-01-28 09:38:28 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building interface class map for 9 classes
-2026-01-28 09:38:28 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Post-processing complete
-2026-01-28 09:38:28 [main] INFO  o.s.data.neo4j.mapping.Neo4jMappingContext - Neo4jMappingContext initialisation completed
-2026-01-28 09:38:28 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-01-28 09:38:29 [main] INFO  Driver - Direct driver instance 2078681430 created for server address localhost:7687
-2026-01-28 09:38:29 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService 'applicationTaskExecutor'
-2026-01-28 09:38:30 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
-2026-01-28 09:38:30 [main] INFO  org.example.Main - Started Main in 4.995 seconds (JVM running for 6.308)
-2026-01-28 09:38:37 [http-nio-8081-exec-1] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-01-28 09:38:37 [http-nio-8081-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-01-28 09:38:37 [http-nio-8081-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 113 ms
-2026-01-28 09:38:37 [http-nio-8081-exec-1] INFO  Driver - Direct driver instance 1975300906 created for server address localhost:7687
-2026-01-28 09:47:55 [SpringContextShutdownHook] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Shutting down ExecutorService 'applicationTaskExecutor'
-2026-01-28 09:47:56 [SpringContextShutdownHook] INFO  org.neo4j.ogm.drivers.bolt.driver.BoltDriver - Shutting down Bolt driver org.neo4j.driver.internal.InternalDriver@75bcb32a 
-2026-01-28 09:47:56 [SpringContextShutdownHook] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-01-28 09:47:56 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2026-01-28 09:47:56 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-01-29 09:13:21 [main] INFO  org.example.Main - Starting Main on PC00109279 with PID 13244 (D:\ideaProject\demo\target\classes started by 00109279 in D:\ideaProject\demo)
+2026-01-29 09:13:21 [main] INFO  org.example.Main - No active profile set, falling back to default profiles: default
+2026-01-29 09:13:22 [background-preinit] WARN  o.s.h.converter.json.Jackson2ObjectMapperBuilder - For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 41ms. Found 0 JPA repository interfaces.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Neo4j repositories in DEFAULT mode.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 48ms. Found 3 Neo4j repository interfaces.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 09:13:22 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 5ms. Found 0 Redis repository interfaces.
+2026-01-29 09:13:23 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8081 (http)
+2026-01-29 09:13:23 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-01-29 09:13:23 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.46]
+2026-01-29 09:13:23 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-01-29 09:13:23 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1722 ms
+2026-01-29 09:13:23 [main] INFO  org.hibernate.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-29 09:13:23 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 5.4.32.Final
+2026-01-29 09:13:24 [main] INFO  org.hibernate.annotations.common.Version - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2026-01-29 09:13:24 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-01-29 09:13:24 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-01-29 09:13:24 [main] INFO  org.hibernate.dialect.Dialect - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+2026-01-29 09:13:24 [main] INFO  o.h.e.t.jta.platform.internal.JtaPlatformInitiator - HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
+2026-01-29 09:13:24 [main] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-29 09:13:25 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Starting Post-processing phase
+2026-01-29 09:13:25 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building byLabel lookup maps
+2026-01-29 09:13:25 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building interface class map for 9 classes
+2026-01-29 09:13:25 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Post-processing complete
+2026-01-29 09:13:25 [main] INFO  o.s.data.neo4j.mapping.Neo4jMappingContext - Neo4jMappingContext initialisation completed
+2026-01-29 09:13:25 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-01-29 09:13:26 [main] INFO  Driver - Direct driver instance 1931691665 created for server address localhost:7687
+2026-01-29 09:13:26 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService 'applicationTaskExecutor'
+2026-01-29 09:13:26 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
+2026-01-29 09:13:26 [main] INFO  org.example.Main - Started Main in 5.342 seconds (JVM running for 7.042)
+2026-01-29 09:17:43 [http-nio-8081-exec-1] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-01-29 09:17:43 [http-nio-8081-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-01-29 09:17:43 [http-nio-8081-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 6 ms
+2026-01-29 09:17:44 [http-nio-8081-exec-1] INFO  Driver - Direct driver instance 901617797 created for server address localhost:7687
+2026-01-29 10:33:21 [http-nio-8081-exec-7] WARN  o.s.w.s.m.support.DefaultHandlerExceptionResolver - Resolved [org.springframework.web.bind.MissingServletRequestParameterException: Required String parameter 'userInput' is not present]
+2026-01-29 10:35:24 [http-nio-8081-exec-9] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 1307973 的评论
+2026-01-29 10:35:25 [http-nio-8081-exec-9] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 10:35:25 [http-nio-8081-exec-9] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 1307973
+2026-01-29 10:35:25 [http-nio-8081-exec-9] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 0 条评论
+2026-01-29 10:46:56 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 1291858 的评论
+2026-01-29 10:46:56 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 10:46:56 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 1291858
+2026-01-29 10:46:57 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 440 条评论
+2026-01-29 10:55:42 [http-nio-8081-exec-2] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 1291858 的评论
+2026-01-29 10:55:42 [http-nio-8081-exec-2] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 10:55:42 [http-nio-8081-exec-2] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 1291858
+2026-01-29 10:55:42 [http-nio-8081-exec-2] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 440 条评论
+2026-01-29 10:55:44 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 1291858 的评论
+2026-01-29 10:55:44 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 10:55:44 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 1291858
+2026-01-29 10:55:44 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 440 条评论
+2026-01-29 11:02:21 [http-nio-8081-exec-4] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 1291858 的评论
+2026-01-29 11:02:21 [http-nio-8081-exec-4] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 11:02:21 [http-nio-8081-exec-4] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 1291858
+2026-01-29 11:02:21 [http-nio-8081-exec-4] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 440 条评论
+2026-01-29 11:02:37 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 0 的评论
+2026-01-29 11:02:38 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 11:02:38 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 0
+2026-01-29 11:02:38 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 0 条评论
+2026-01-29 13:32:17 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h32m52s305ms225µs700ns).
+2026-01-29 13:51:23 [http-nio-8081-exec-9] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 0 的评论
+2026-01-29 13:51:23 [http-nio-8081-exec-9] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 13:51:23 [http-nio-8081-exec-9] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 0
+2026-01-29 13:51:23 [http-nio-8081-exec-9] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 0 条评论
+2026-01-29 13:53:09 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 0 的评论
+2026-01-29 13:53:09 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 13:53:09 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 0
+2026-01-29 13:53:09 [http-nio-8081-exec-5] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 0 条评论
+2026-01-29 13:54:57 [http-nio-8081-exec-4] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 0 的评论
+2026-01-29 13:54:57 [http-nio-8081-exec-4] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 13:54:57 [http-nio-8081-exec-4] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 0
+2026-01-29 13:54:57 [http-nio-8081-exec-4] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 0 条评论
+2026-01-29 13:58:48 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 0 的评论
+2026-01-29 13:58:48 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 13:58:48 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 0
+2026-01-29 13:58:48 [http-nio-8081-exec-6] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 0 条评论
+2026-01-29 14:16:49 [http-nio-8081-exec-8] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 0 的评论
+2026-01-29 14:16:49 [http-nio-8081-exec-8] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 14:16:49 [http-nio-8081-exec-8] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 0
+2026-01-29 14:16:49 [http-nio-8081-exec-8] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 0 条评论
+2026-01-29 14:27:55 [http-nio-8081-exec-1] INFO  org.example.service.MovieRecommendationService - 正在查询电影ID 0 的评论
+2026-01-29 14:27:55 [http-nio-8081-exec-1] INFO  org.example.service.MovieRecommendationService - 通过关系查询到 0 条评论
+2026-01-29 14:27:55 [http-nio-8081-exec-1] INFO  org.example.service.MovieRecommendationService - 通过关系未查询到评论，尝试通过属性查询电影ID 0
+2026-01-29 14:27:55 [http-nio-8081-exec-1] INFO  org.example.service.MovieRecommendationService - 通过属性查询到 0 条评论
+2026-01-29 15:02:13 [SpringContextShutdownHook] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Shutting down ExecutorService 'applicationTaskExecutor'
+2026-01-29 15:02:13 [SpringContextShutdownHook] INFO  org.neo4j.ogm.drivers.bolt.driver.BoltDriver - Shutting down Bolt driver org.neo4j.driver.internal.InternalDriver@35bd9885 
+2026-01-29 15:02:14 [SpringContextShutdownHook] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-01-29 15:02:14 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-01-29 15:02:14 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-01-29 15:02:26 [main] INFO  org.example.Main - Starting Main on PC00109279 with PID 24976 (D:\ideaProject\demo\target\classes started by 00109279 in D:\ideaProject\demo)
+2026-01-29 15:02:26 [main] INFO  org.example.Main - No active profile set, falling back to default profiles: default
+2026-01-29 15:02:26 [background-preinit] WARN  o.s.h.converter.json.Jackson2ObjectMapperBuilder - For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 33ms. Found 0 JPA repository interfaces.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Neo4j repositories in DEFAULT mode.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 39ms. Found 3 Neo4j repository interfaces.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 15:02:27 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 6ms. Found 0 Redis repository interfaces.
+2026-01-29 15:02:27 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8081 (http)
+2026-01-29 15:02:27 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-01-29 15:02:27 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.46]
+2026-01-29 15:02:28 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-01-29 15:02:28 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1513 ms
+2026-01-29 15:02:28 [main] INFO  org.hibernate.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-29 15:02:28 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 5.4.32.Final
+2026-01-29 15:02:28 [main] INFO  org.hibernate.annotations.common.Version - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2026-01-29 15:02:28 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-01-29 15:02:28 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-01-29 15:02:28 [main] INFO  org.hibernate.dialect.Dialect - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+2026-01-29 15:02:28 [main] INFO  o.h.e.t.jta.platform.internal.JtaPlatformInitiator - HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
+2026-01-29 15:02:28 [main] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-29 15:02:29 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Starting Post-processing phase
+2026-01-29 15:02:29 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building byLabel lookup maps
+2026-01-29 15:02:29 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building interface class map for 9 classes
+2026-01-29 15:02:29 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Post-processing complete
+2026-01-29 15:02:29 [main] INFO  o.s.data.neo4j.mapping.Neo4jMappingContext - Neo4jMappingContext initialisation completed
+2026-01-29 15:02:29 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-01-29 15:02:30 [main] INFO  Driver - Direct driver instance 1888449414 created for server address localhost:7687
+2026-01-29 15:02:30 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService 'applicationTaskExecutor'
+2026-01-29 15:02:30 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
+2026-01-29 15:02:30 [main] INFO  org.example.Main - Started Main in 4.808 seconds (JVM running for 6.006)
+2026-01-29 15:07:38 [http-nio-8081-exec-1] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-01-29 15:07:38 [http-nio-8081-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-01-29 15:07:38 [http-nio-8081-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 7 ms
+2026-01-29 15:07:38 [http-nio-8081-exec-1] INFO  Driver - Direct driver instance 1754977172 created for server address localhost:7687
+2026-01-29 15:11:08 [http-nio-8081-exec-3] WARN  org.example.service.MovieRecommendationService - 用户1无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:11:08 [http-nio-8081-exec-4] WARN  org.example.service.MovieRecommendationService - 用户1无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:19:24 [http-nio-8081-exec-5] WARN  org.example.service.MovieRecommendationService - 用户1无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:25:04 [SpringContextShutdownHook] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Shutting down ExecutorService 'applicationTaskExecutor'
+2026-01-29 15:25:04 [SpringContextShutdownHook] INFO  org.neo4j.ogm.drivers.bolt.driver.BoltDriver - Shutting down Bolt driver org.neo4j.driver.internal.InternalDriver@689ad394 
+2026-01-29 15:25:04 [SpringContextShutdownHook] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-01-29 15:25:04 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-01-29 15:25:04 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-01-29 15:25:20 [main] INFO  org.example.Main - Starting Main on PC00109279 with PID 36032 (D:\ideaProject\demo\target\classes started by 00109279 in D:\ideaProject\demo)
+2026-01-29 15:25:20 [main] INFO  org.example.Main - No active profile set, falling back to default profiles: default
+2026-01-29 15:25:20 [background-preinit] WARN  o.s.h.converter.json.Jackson2ObjectMapperBuilder - For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 36ms. Found 0 JPA repository interfaces.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Neo4j repositories in DEFAULT mode.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 39ms. Found 3 Neo4j repository interfaces.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 15:25:21 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 6ms. Found 0 Redis repository interfaces.
+2026-01-29 15:25:21 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8081 (http)
+2026-01-29 15:25:21 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-01-29 15:25:21 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.46]
+2026-01-29 15:25:21 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-01-29 15:25:21 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1614 ms
+2026-01-29 15:25:22 [main] INFO  org.hibernate.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-29 15:25:22 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 5.4.32.Final
+2026-01-29 15:25:22 [main] INFO  org.hibernate.annotations.common.Version - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2026-01-29 15:25:22 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-01-29 15:25:22 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-01-29 15:25:22 [main] INFO  org.hibernate.dialect.Dialect - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+2026-01-29 15:25:22 [main] INFO  o.h.e.t.jta.platform.internal.JtaPlatformInitiator - HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
+2026-01-29 15:25:22 [main] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-29 15:25:23 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Starting Post-processing phase
+2026-01-29 15:25:23 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building byLabel lookup maps
+2026-01-29 15:25:23 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building interface class map for 9 classes
+2026-01-29 15:25:23 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Post-processing complete
+2026-01-29 15:25:23 [main] INFO  o.s.data.neo4j.mapping.Neo4jMappingContext - Neo4jMappingContext initialisation completed
+2026-01-29 15:25:23 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-01-29 15:25:23 [main] INFO  Driver - Direct driver instance 347238032 created for server address localhost:7687
+2026-01-29 15:25:23 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService 'applicationTaskExecutor'
+2026-01-29 15:25:24 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
+2026-01-29 15:25:24 [main] INFO  org.example.Main - Started Main in 4.768 seconds (JVM running for 7.044)
+2026-01-29 15:25:30 [http-nio-8081-exec-2] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-01-29 15:25:30 [http-nio-8081-exec-2] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-01-29 15:25:30 [http-nio-8081-exec-2] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 121 ms
+2026-01-29 15:25:30 [http-nio-8081-exec-2] INFO  Driver - Direct driver instance 535283929 created for server address localhost:7687
+2026-01-29 15:25:31 [http-nio-8081-exec-3] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:25:31 [http-nio-8081-exec-4] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:28:39 [http-nio-8081-exec-9] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:28:39 [http-nio-8081-exec-10] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:31:59 [http-nio-8081-exec-1] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:31:59 [http-nio-8081-exec-4] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:34:01 [SpringContextShutdownHook] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Shutting down ExecutorService 'applicationTaskExecutor'
+2026-01-29 15:34:01 [SpringContextShutdownHook] INFO  org.neo4j.ogm.drivers.bolt.driver.BoltDriver - Shutting down Bolt driver org.neo4j.driver.internal.InternalDriver@1fe7c8d9 
+2026-01-29 15:34:02 [SpringContextShutdownHook] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-01-29 15:34:02 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-01-29 15:34:02 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-01-29 15:34:49 [main] INFO  org.example.Main - Starting Main on PC00109279 with PID 19768 (D:\ideaProject\demo\target\classes started by 00109279 in D:\ideaProject\demo)
+2026-01-29 15:34:49 [main] INFO  org.example.Main - No active profile set, falling back to default profiles: default
+2026-01-29 15:34:49 [background-preinit] WARN  o.s.h.converter.json.Jackson2ObjectMapperBuilder - For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data JPA - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a JPA repository, consider annotating your entities with one of these annotations: javax.persistence.Entity, javax.persistence.MappedSuperclass (preferred), or consider extending one of the following types with your repository: org.springframework.data.jpa.repository.JpaRepository.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 32ms. Found 0 JPA repository interfaces.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Neo4j repositories in DEFAULT mode.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 40ms. Found 3 Neo4j repository interfaces.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode!
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.CommentRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.MovieRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface org.example.repository.UserRepository. If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository.
+2026-01-29 15:34:49 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 7ms. Found 0 Redis repository interfaces.
+2026-01-29 15:34:50 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8081 (http)
+2026-01-29 15:34:50 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-01-29 15:34:50 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.46]
+2026-01-29 15:34:50 [main] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-01-29 15:34:50 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1385 ms
+2026-01-29 15:34:50 [main] INFO  org.hibernate.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-29 15:34:50 [main] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 5.4.32.Final
+2026-01-29 15:34:50 [main] INFO  org.hibernate.annotations.common.Version - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2026-01-29 15:34:50 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-01-29 15:34:51 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-01-29 15:34:51 [main] INFO  org.hibernate.dialect.Dialect - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+2026-01-29 15:34:51 [main] INFO  o.h.e.t.jta.platform.internal.JtaPlatformInitiator - HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
+2026-01-29 15:34:51 [main] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-29 15:34:51 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Starting Post-processing phase
+2026-01-29 15:34:51 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building byLabel lookup maps
+2026-01-29 15:34:51 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Building interface class map for 9 classes
+2026-01-29 15:34:51 [main] INFO  org.neo4j.ogm.metadata.DomainInfo - Post-processing complete
+2026-01-29 15:34:51 [main] INFO  o.s.data.neo4j.mapping.Neo4jMappingContext - Neo4jMappingContext initialisation completed
+2026-01-29 15:34:51 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-01-29 15:34:52 [main] INFO  Driver - Direct driver instance 462349981 created for server address localhost:7687
+2026-01-29 15:34:52 [main] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Initializing ExecutorService 'applicationTaskExecutor'
+2026-01-29 15:34:52 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
+2026-01-29 15:34:52 [main] INFO  org.example.Main - Started Main in 4.391 seconds (JVM running for 5.537)
+2026-01-29 15:34:57 [http-nio-8081-exec-2] INFO  o.a.c.core.ContainerBase.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-01-29 15:34:57 [http-nio-8081-exec-2] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-01-29 15:34:57 [http-nio-8081-exec-2] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 6 ms
+2026-01-29 15:34:57 [http-nio-8081-exec-2] INFO  Driver - Direct driver instance 2099413121 created for server address localhost:7687
+2026-01-29 15:34:58 [http-nio-8081-exec-3] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:34:59 [http-nio-8081-exec-4] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:40:01 [http-nio-8081-exec-9] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:40:01 [http-nio-8081-exec-10] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:48:36 [http-nio-8081-exec-1] WARN  org.example.service.MovieRecommendationService - 用户Chris  一切由无聊开始无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:48:43 [http-nio-8081-exec-4] WARN  org.example.service.MovieRecommendationService - 用户Chris  一切由无聊开始无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:53:15 [http-nio-8081-exec-7] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:53:15 [http-nio-8081-exec-9] WARN  org.example.service.MovieRecommendationService - 用户default无评分记录，协同过滤返回默认热门电影
+2026-01-29 15:55:47 [SpringContextShutdownHook] INFO  o.s.scheduling.concurrent.ThreadPoolTaskExecutor - Shutting down ExecutorService 'applicationTaskExecutor'
+2026-01-29 15:55:47 [SpringContextShutdownHook] INFO  org.neo4j.ogm.drivers.bolt.driver.BoltDriver - Shutting down Bolt driver org.neo4j.driver.internal.InternalDriver@7d228081 
+2026-01-29 15:55:47 [SpringContextShutdownHook] INFO  o.s.orm.jpa.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-01-29 15:55:47 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-01-29 15:55:47 [SpringContextShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.

@@ -25,4 +25,9 @@ public interface CommentRepository extends Neo4jRepository<CommentNode, Long> {
     // 根据电影ID和评分获取评论
     @Query("MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment) WHERE m.info_id = $movieId AND c.rating >= $minRating RETURN c")
     List<CommentNode> findByMovieIdAndMinRating(@Param("movieId") Integer movieId, @Param("minRating") int minRating);
+
+    // 获取所有评论创建者
+    @Query("MATCH (c:Comment) WHERE c.creator IS NOT NULL RETURN DISTINCT c.creator ORDER BY RAND() LIMIT 50")
+    List<String> findAllCreators();
+
 }
