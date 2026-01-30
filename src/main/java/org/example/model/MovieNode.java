@@ -12,8 +12,7 @@ import java.util.List;
 @NodeEntity(label = "Movie")
 @Data
 public class MovieNode {
-    @Id
-    @GeneratedValue
+    @Property(name = "id")
     private Long id;
 
     // 适配数据中的 "info_id" 字段

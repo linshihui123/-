@@ -22,9 +22,9 @@ public class RecommendationController {
      * 基于用户评分的协同过滤推荐
      */
     @GetMapping("/collaborative-filtering/{userId}")
-    public Result<List<MovieNode>> collaborativeFilteringRecommend(@PathVariable Integer userId) {
+    public Result<List<MovieNode>> collaborativeFilteringRecommend(@PathVariable String userId) {
         try {
-            List<MovieNode> recommendations = recommendationService.collaborativeFilteringRecommend(userId);
+            List<MovieNode> recommendations = recommendationService.collaborativeFilteringRecommendByUsername(userId);
             return Result.success(recommendations);
         } catch (Exception e) {
             log.error("协同过滤推荐失败：userId={}", userId, e);
@@ -33,16 +33,16 @@ public class RecommendationController {
     }
 
     /**
-     * 基于用户评分的协同过滤推荐（无需指定用户，使用默认用户或从会话中获取）
+     * 基于用户评分的协同过滤推荐（可选：通过查询参数传入用户ID）
      */
     @GetMapping("/collaborative-filtering")
-    public Result<List<MovieNode>> collaborativeFilteringRecommendDefault() {
+    public Result<List<MovieNode>> collaborativeFilteringRecommendByQuery(@RequestParam(required = false) String userId) {
         try {
-            Integer defaultUserId = 1;
-            List<MovieNode> recommendations = recommendationService.collaborativeFilteringRecommend(defaultUserId);
+            String username = userId != null && !userId.trim().isEmpty() ? userId : "default_user";
+            List<MovieNode> recommendations = recommendationService.collaborativeFilteringRecommendByUsername(username);
             return Result.success(recommendations);
         } catch (Exception e) {
-            log.error("协同过滤推荐失败", e);
+            log.error("协同过滤推荐失败：userId={}", userId, e);
             return Result.error(org.example.response.ResultCodeEnum.SYSTEM_ERROR.getCode(), "协同过滤推荐失败");
         }
     }

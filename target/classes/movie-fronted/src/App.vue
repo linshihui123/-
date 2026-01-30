@@ -142,17 +142,6 @@
           </div>
         </div>
 
-        <!-- 协同过滤推荐页面 -->
-        <div v-if="activeTab === 'collaborative'" class="browse-container">
-          <div class="layout-wrapper">
-            <div class="main-content">
-              <CollaborativeFilteringRecommend
-                  @movie-click="handleMovieClick"
-              />
-            </div>
-          </div>
-        </div>
-
         <!-- 知识图谱页面 -->
         <div v-if="activeTab === 'graph'">
           <KnowledgeGraph :current-user="currentUser" />

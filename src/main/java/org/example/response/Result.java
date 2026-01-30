@@ -44,4 +44,7 @@ public class Result<T> {
     public static <T> Result<T> error(String msg) {
         return error(500, msg);
     }
-}
+}// 在MovieRecommendationService类内部添加：
+
+
+

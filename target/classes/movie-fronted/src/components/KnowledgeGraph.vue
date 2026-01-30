@@ -374,7 +374,7 @@ export default {
               width: 1.5,
               color: '#B0C4DE',
               type: 'solid',
-              opacity: 0.8
+              opacity: 1  // 修改为1，去除模糊效果
             }
           })
         }
@@ -389,11 +389,11 @@ export default {
 
     getNodeCategories() {
       return [
-        { name: 'movie', itemStyle: { color: '#8A2BE2', borderWidth: 2, borderColor: '#4B0082' } },
-        { name: 'director', itemStyle: { color: '#FF4500', borderWidth: 1, borderColor: '#FF6347' } },
-        { name: 'actor', itemStyle: { color: '#FF6347', borderWidth: 1, borderColor: '#FF4500' } },
-        { name: 'region', itemStyle: { color: '#FFD700', borderWidth: 1, borderColor: '#FFA500' } },
-        { name: 'genre', itemStyle: { color: '#32CD32', borderWidth: 1, borderColor: '#228B22' } }
+        { name: 'movie', itemStyle: { color: '#8A2BE2', borderWidth: 2, borderColor: '#4B0082', opacity: 1 } },
+        { name: 'director', itemStyle: { color: '#FF4500', borderWidth: 1, borderColor: '#FF6347', opacity: 1 } },
+        { name: 'actor', itemStyle: { color: '#FF6347', borderWidth: 1, borderColor: '#FF4500', opacity: 1 } },
+        { name: 'region', itemStyle: { color: '#FFD700', borderWidth: 1, borderColor: '#FFA500', opacity: 1 } },
+        { name: 'genre', itemStyle: { color: '#32CD32', borderWidth: 1, borderColor: '#228B22', opacity: 1 } }
       ]
     },
 
@@ -411,20 +411,7 @@ export default {
       const option = {
         backgroundColor: '#FFFFFF',
         tooltip: {
-          trigger: 'item',
-          backgroundColor: 'rgba(255,255,255,0.95)',
-          borderColor: '#E5E5E5',
-          borderWidth: 1,
-          borderRadius: 6,
-          padding: [8, 12],
-          textStyle: { color: '#333', fontSize: 12 },
-          formatter: params => {
-            if (params.dataType === 'node') {
-              const types = ['电影','导演','演员','地区','类型']
-              return `${params.name}<br/>类型：${types[params.data.category] || '未知'}`
-            }
-            return params.dataType === 'edge' ? `关系：${params.data.label.formatter}` : params.name
-          }
+          show: false
         },
         legend: {
           show: true,
@@ -473,10 +460,11 @@ export default {
               color: 'source',
               width: 1.5,
               curveness: 0.1,
-              opacity: 0.6
+              opacity: 1  // 修改为1，去除模糊效果
             },
             emphasis: {
-              focus: 'adjacency',
+              focus: 'none',
+              blurScope: 'none',
               lineStyle: {
                 width: 2,
                 opacity: 1
@@ -515,11 +503,13 @@ export default {
         const dx = currentNode.x - _this.dragStartPos.x
         const dy = currentNode.y - _this.dragStartPos.y
 
+        // 获取当前图表的所有节点
+        const graphOption = _this.graphInstance.getOption()
+        const allNodes = graphOption.series[0].data
+
         // 如果是电影节点被拖动，移动所有子节点
         if (currentNode.type === 'movie' && _this.coreMovieMap.has(currentNode.id)) {
           const childNodeIds = _this.coreMovieMap.get(currentNode.id)
-          const graphOption = _this.graphInstance.getOption()
-          const allNodes = graphOption.series[0].data
 
           // 更新所有子节点的位置
           childNodeIds.forEach(childId => {
@@ -535,34 +525,31 @@ export default {
             series: [{
               data: allNodes
             }]
-          }, true) // 使用true参数强制更新
+          })
         }
 
         // 如果是子节点被拖动，检查它是否属于多个父节点
         else if (currentNode.type !== 'movie' && _this.nodePositions.has(currentNode.id)) {
           const parentMovieIds = Array.from(_this.nodePositions.get(currentNode.id))
-          const graphOption = _this.graphInstance.getOption()
-          const allNodes = graphOption.series[0].data
 
-          // 找到对应的父电影节点
+          // 去重集合，避免重复移动同一个节点
+          const nodesToMove = new Set()
+
+          // 收集所有需要移动的节点
           parentMovieIds.forEach(parentId => {
             const parentNode = allNodes.find(n => n.id === parentId && n.type === 'movie')
             if (parentNode) {
-              // 计算父节点的新位置（保持相对位置不变）
-              const relativeX = currentNode.x - _this.dragStartPos.x
-              const relativeY = currentNode.y - _this.dragStartPos.y
-              parentNode.x += relativeX
-              parentNode.y += relativeY
+              // 添加父节点
+              nodesToMove.add(parentNode)
 
-              // 移动该父节点的其他子节点
+              // 添加父节点的所有子节点（包括当前节点）
               if (_this.coreMovieMap.has(parentId)) {
                 const siblingIds = _this.coreMovieMap.get(parentId)
                 siblingIds.forEach(siblingId => {
                   if (siblingId !== currentNode.id) {
                     const siblingNode = allNodes.find(n => n.id === siblingId)
                     if (siblingNode) {
-                      siblingNode.x += relativeX
-                      siblingNode.y += relativeY
+                      nodesToMove.add(siblingNode)
                     }
                   }
                 })
@@ -570,12 +557,18 @@ export default {
             }
           })
 
+          // 统一移动所有相关节点
+          nodesToMove.forEach(node => {
+            node.x += dx
+            node.y += dy
+          })
+
           // 更新图表
           _this.graphInstance.setOption({
             series: [{
               data: allNodes
             }]
-          }, true) // 使用true参数强制更新
+          })
         }
 
         // 更新起始位置

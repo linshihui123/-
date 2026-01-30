@@ -34,3 +34,27 @@ export function getMovieDetail(movieId) {
         method: 'get'
     })
 }
+
+// 获取协同过滤推荐
+export function getCollaborativeFilteringRecommend(userId) {
+    return request({
+        url: `/recommendation/collaborative-filtering/${userId}`,
+        method: 'get'
+    })
+}
+
+// 获取默认协同过滤推荐
+export function getDefaultCollaborativeFilteringRecommend() {
+    return request({
+        url: '/recommendation/collaborative-filtering',
+        method: 'get'
+    })
+}
+
+// 获取所有评论创建者
+export function getAllCommentCreators() {
+    return request({
+        url: '/comment/creators',
+        method: 'get'
+    })
+}

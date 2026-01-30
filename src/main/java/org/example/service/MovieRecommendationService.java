@@ -5,8 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.model.*;
 import org.example.repository.MovieRepository;
 import org.example.repository.CommentRepository;
+import org.example.repository.UserMapper;
 import org.example.response.Result;
 import org.example.response.ResultCodeEnum;
+import org.example.response.SimilarityResult;
 import org.neo4j.ogm.cypher.ComparisonOperator;
 import org.neo4j.ogm.cypher.Filter;
 import org.neo4j.ogm.session.Session;
@@ -26,12 +28,15 @@ public class MovieRecommendationService {
 
     @Autowired
     private Session neo4jSession;
-    
+
     @Autowired
     private MovieRepository movieRepository;
-    
+
     @Autowired
     private CommentRepository commentRepository;
+
+    @Autowired
+    private UserMapper userMapper;
 
     // 配置注入（替代硬编码）
     @Value("${recommend.cf.topN}")
@@ -63,15 +68,15 @@ public class MovieRecommendationService {
 
             // 获取所有电影（不只是有评论的电影）
             List<MovieNode> allMovies = movieRepository.findOtherAllMovies(skip, size);
-            
+
             // 获取所有电影总数
             long total = getTotalMovieCount();
-            
+
             // 检查allMovies是否为null
             if (allMovies == null) {
                 allMovies = new ArrayList<>();
             }
-            
+
             // 使用专门的方法来设置分页数据
             return Result.successWithTotal(allMovies, total);
         } catch (Exception e) {
@@ -79,7 +84,7 @@ public class MovieRecommendationService {
             return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取所有电影列表失败");
         }
     }
-    
+
     /**
      * 获取电影总数
      */
@@ -134,53 +139,53 @@ public class MovieRecommendationService {
     public Result<List<MovieNode>> searchMovies(String keyword, String type, String director, String actor, int page, int size) {
         try {
             int skip = page * size;
-            
+
             // 如果只有关键词，使用名称搜索
-            if (keyword != null && !keyword.trim().isEmpty() && 
-                (type == null || type.trim().isEmpty()) && 
-                (director == null || director.trim().isEmpty()) && 
-                (actor == null || actor.trim().isEmpty())) {
-                
+            if (keyword != null && !keyword.trim().isEmpty() &&
+                    (type == null || type.trim().isEmpty()) &&
+                    (director == null || director.trim().isEmpty()) &&
+                    (actor == null || actor.trim().isEmpty())) {
+
                 List<MovieNode> movies = movieRepository.findByMovieNameContaining(keyword);
                 return Result.success(movies);
             }
-            
+
             // 如果只有类型，按类型搜索
-            if (type != null && !type.trim().isEmpty() && 
-                (keyword == null || keyword.trim().isEmpty()) && 
-                (director == null || director.trim().isEmpty()) && 
-                (actor == null || actor.trim().isEmpty())) {
-                
+            if (type != null && !type.trim().isEmpty() &&
+                    (keyword == null || keyword.trim().isEmpty()) &&
+                    (director == null || director.trim().isEmpty()) &&
+                    (actor == null || actor.trim().isEmpty())) {
+
                 List<MovieNode> movies = movieRepository.findByType(type);
                 return Result.success(movies);
             }
-            
+
             // 如果只有导演，按导演搜索
-            if (director != null && !director.trim().isEmpty() && 
-                (keyword == null || keyword.trim().isEmpty()) && 
-                (type == null || type.trim().isEmpty()) && 
-                (actor == null || actor.trim().isEmpty())) {
-                
+            if (director != null && !director.trim().isEmpty() &&
+                    (keyword == null || keyword.trim().isEmpty()) &&
+                    (type == null || type.trim().isEmpty()) &&
+                    (actor == null || actor.trim().isEmpty())) {
+
                 List<MovieNode> movies = movieRepository.findByDirectorName(director);
                 return Result.success(movies);
             }
-            
+
             // 如果只有演员，按演员搜索
-            if (actor != null && !actor.trim().isEmpty() && 
-                (keyword == null || keyword.trim().isEmpty()) && 
-                (type == null || type.trim().isEmpty()) && 
-                (director == null || director.trim().isEmpty())) {
-                
+            if (actor != null && !actor.trim().isEmpty() &&
+                    (keyword == null || keyword.trim().isEmpty()) &&
+                    (type == null || type.trim().isEmpty()) &&
+                    (director == null || director.trim().isEmpty())) {
+
                 List<MovieNode> movies = movieRepository.findByActorName(actor);
                 return Result.success(movies);
             }
-            
+
             // 使用更通用的搜索方法
             List<MovieNode> movies = movieRepository.searchMovies(
-                keyword != null && !keyword.trim().isEmpty() ? keyword : null,
-                type != null && !type.trim().isEmpty() ? type : null,
-                skip, size);
-                
+                    keyword != null && !keyword.trim().isEmpty() ? keyword : null,
+                    type != null && !type.trim().isEmpty() ? type : null,
+                    skip, size);
+
             return Result.success(movies);
         } catch (Exception e) {
             log.error("搜索电影失败：keyword={}, type={}, director={}, actor={}", keyword, type, director, actor, e);
@@ -230,10 +235,10 @@ public class MovieRecommendationService {
     public Result<List<MovieNode>> getMoviesByType(String type, int page, int size) {
         try {
             List<MovieNode> movies = movieRepository.findByTypeOrderByRating(type, size);
-            
+
             // 获取该类型的总记录数
             long total = getTotalMovieCountByType(type);
-            
+
             // 使用专门的方法来设置分页数据
             return Result.successWithTotal(movies, total);
         } catch (Exception e) {
@@ -241,7 +246,7 @@ public class MovieRecommendationService {
             return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "根据类型获取电影失败");
         }
     }
-    
+
     /**
      * 获取指定类型的电影总数
      */
@@ -257,88 +262,13 @@ public class MovieRecommendationService {
     }
 
     /**
-     * 根据导演获取电影
-     */
-    public Result<List<MovieNode>> getMoviesByDirector(String directorName, int page, int size) {
-        try {
-            // 使用Cypher查询来处理director字符串字段
-            String cypher = "MATCH (m:Movie) WHERE m.director CONTAINS $directorName RETURN m SKIP $skip LIMIT $size";
-            Map<String, Object> params = new HashMap<>();
-            params.put("directorName", directorName);
-            params.put("skip", page * size);
-            params.put("size", size);
-
-            Iterable<MovieNode> movieIterable = neo4jSession.query(MovieNode.class, cypher, params);
-            List<MovieNode> movies = StreamSupport.stream(movieIterable.spliterator(), false)
-                    .collect(Collectors.toList());
-
-            return Result.success(movies);
-        } catch (Exception e) {
-            log.error("根据导演获取电影失败：directorName={}, page={}, size={}", directorName, page, size, e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "根据导演获取电影失败");
-        }
-    }
-
-    /**
-     * 根据演员获取电影
-     */
-    public Result<List<MovieNode>> getMoviesByActor(String actorName, int page, int size) {
-        try {
-            // 使用Cypher查询来处理actor字符串字段
-            String cypher = "MATCH (m:Movie) WHERE m.actor CONTAINS $actorName RETURN m SKIP $skip LIMIT $size";
-            Map<String, Object> params = new HashMap<>();
-            params.put("actorName", actorName);
-            params.put("skip", page * size);
-            params.put("size", size);
-
-            Iterable<MovieNode> movieIterable = neo4jSession.query(MovieNode.class, cypher, params);
-            List<MovieNode> movies = StreamSupport.stream(movieIterable.spliterator(), false)
-                    .collect(Collectors.toList());
-
-            return Result.success(movies);
-        } catch (Exception e) {
-            log.error("根据演员获取电影失败：actorName={}, page={}, size={}", actorName, page, size, e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "根据演员获取电影失败");
-        }
-    }
-
-    /**
-     * 获取电影的评论列表（包含用户信息）
-     */
-    public Result<List<CommentNode>> getCommentsByMovieId(Integer movieId) {
-        try {
-            String cypher = "MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment)-[:CREATED_BY]->(u:User) WHERE m.info_id = $movieId RETURN c, u";
-            Map<String, Object> params = new HashMap<>();
-            params.put("movieId", movieId);
-            
-            Iterable<Map<String, Object>> resultIterable = neo4jSession.query(cypher, params);
-            List<CommentNode> comments = new ArrayList<>();
-            
-            for (Map<String, Object> row : resultIterable) {
-                CommentNode comment = (CommentNode) row.get("c");
-                UserNode user = (UserNode) row.get("u");
-                
-                // 设置完整的用户信息
-                comment.setUser(user);
-                
-                comments.add(comment);
-            }
-            
-            return Result.success(comments);
-        } catch (Exception e) {
-            log.error("获取电影评论失败：movieId={}", movieId, e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影评论失败");
-        }
-    }
-
-    /**
      * 获取所有电影和评论的详细信息
      */
     public Result<List<Map<String, Object>>> getAllMovieComments() {
         try {
             String cypher = "MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment) RETURN m.id AS 电影ID, m.name AS 电影名, c.id AS 评论ID, c.content AS 评论内容";
             Iterable<Map<String, Object>> queryResult = neo4jSession.query(cypher, Collections.emptyMap());
-            
+
             List<Map<String, Object>> results = new ArrayList<>();
             for (Map<String, Object> row : queryResult) {
                 Map<String, Object> resultRow = new HashMap<>();
@@ -348,21 +278,21 @@ public class MovieRecommendationService {
                 resultRow.put("评论内容", row.get("评论内容"));
                 results.add(resultRow);
             }
-            
+
             return Result.success(results);
         } catch (Exception e) {
             log.error("获取所有电影评论失败", e);
             return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取所有电影评论失败");
         }
     }
-    
+
     /**
      * 根据电影ID获取特定电影的评论信息
      */
     public Result<List<Map<String, Object>>> getMovieCommentsByMovieId(Integer movieId) {
         try {
             log.info("正在查询电影ID {} 的评论", movieId);
-            
+
             // 1. 先查询通过关系连接的评论
             String cypher = "MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment) " +
                     "WHERE m.info_id = $movieId " +
@@ -392,39 +322,39 @@ public class MovieRecommendationService {
                 resultRow.put("comment_add_time", row.get("comment_add_time"));
                 results.add(resultRow);
             }
-            
+
             log.info("通过关系查询到 {} 条评论", results.size());
-            
-            // 如果通过关系没查到，尝试通过属性查询
-            if (results.isEmpty()) {
-                log.info("通过关系未查询到评论，尝试通过属性查询电影ID {}", movieId);
-                String attrCypher = "MATCH (c:Comment) " +
-                        "WHERE c.movie_id = $movieId " +
-                        "RETURN " +
-                        "id(c) AS comment_id, " +
-                        "c.movie_id AS movie_id, " +
-                        "c.creator AS creator, " +
-                        "c.content AS content, " +
-                        "c.comment_rating AS comment_rating, " +
-                        "c.comment_time AS comment_time, " +
-                        "c.comment_add_time AS comment_add_time";
-                
-                Iterable<Map<String, Object>> attrQueryResult = neo4jSession.query(attrCypher, params);
-                
-                for (Map<String, Object> row : attrQueryResult) {
-                    Map<String, Object> resultRow = new HashMap<>();
-                    resultRow.put("comment_id", row.get("comment_id"));
-                    resultRow.put("movie_id", row.get("movie_id"));
-                    resultRow.put("creator", row.get("creator"));
-                    resultRow.put("content", row.get("content"));
-                    resultRow.put("comment_rating", row.get("comment_rating"));
-                    resultRow.put("comment_time", row.get("comment_time"));
-                    resultRow.put("comment_add_time", row.get("comment_add_time"));
-                    results.add(resultRow);
-                }
-                
-                log.info("通过属性查询到 {} 条评论", results.size());
-            }
+
+//            // 如果通过关系没查到，尝试通过属性查询
+//            if (results.isEmpty()) {
+//                log.info("通过关系未查询到评论，尝试通过属性查询电影ID {}", movieId);
+//                String attrCypher = "MATCH (c:Comment) " +
+//                        "WHERE c.movie_id = $movieId " +
+//                        "RETURN " +
+//                        "id(c) AS comment_id, " +
+//                        "c.movie_id AS movie_id, " +
+//                        "c.creator AS creator, " +
+//                        "c.content AS content, " +
+//                        "c.comment_rating AS comment_rating, " +
+//                        "c.comment_time AS comment_time, " +
+//                        "c.comment_add_time AS comment_add_time";
+//
+//                Iterable<Map<String, Object>> attrQueryResult = neo4jSession.query(attrCypher, params);
+//
+//                for (Map<String, Object> row : attrQueryResult) {
+//                    Map<String, Object> resultRow = new HashMap<>();
+//                    resultRow.put("comment_id", row.get("comment_id"));
+//                    resultRow.put("movie_id", row.get("movie_id"));
+//                    resultRow.put("creator", row.get("creator"));
+//                    resultRow.put("content", row.get("content"));
+//                    resultRow.put("comment_rating", row.get("comment_rating"));
+//                    resultRow.put("comment_time", row.get("comment_time"));
+//                    resultRow.put("comment_add_time", row.get("comment_add_time"));
+//                    results.add(resultRow);
+//                }
+//
+//                log.info("通过属性查询到 {} 条评论", results.size());
+//            }
 
             return Result.success(results);
         } catch (Exception e) {
@@ -432,7 +362,7 @@ public class MovieRecommendationService {
             return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影评论失败");
         }
     }
-    
+
     /**
      * 获取有评论的电影列表
      */
@@ -440,17 +370,17 @@ public class MovieRecommendationService {
         try {
             int skip = page * size;
             List<MovieNode> movies = movieRepository.findMoviesWithCommentsPaginated(skip, size);
-            
+
             // 获取有评论的电影总数
             long total = getMoviesWithCommentsCount();
-            
+
             return Result.successWithTotal(movies, total);
         } catch (Exception e) {
             log.error("获取有评论的电影列表失败：page={}, size={}", page, size, e);
             return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取有评论的电影列表失败");
         }
     }
-    
+
     /**
      * 获取有评论的电影总数
      */
@@ -462,238 +392,120 @@ public class MovieRecommendationService {
         }
         return 0;
     }
-    
+
     /**
-     * 增强版协同过滤（UserCF）
+     * 基于用户名的协同过滤推荐（接收字符串用户名）
      */
-    public List<MovieNode> collaborativeFilteringRecommend(Integer userId) {
-        // 步骤1：获取目标用户已评分电影
-        List<Integer> ratedMovieIds = getUserRatedMovieIds(userId);
+    public List<MovieNode> collaborativeFilteringRecommendByUsername(String username) {
+        // 步骤1：获取目标用户已评分电影ID（基于Comment节点movie_id）
+        List<Integer> ratedMovieIds = getUserRatedMovieIdsByUsername(username);
         if (CollectionUtils.isEmpty(ratedMovieIds)) {
-            log.warn("用户{}无评分记录，协同过滤返回默认热门电影", userId);
+            log.warn("用户{}无评分记录，协同过滤返回默认热门电影", username);
             return getDefaultHighRatingMovies(cfTopN);
         }
 
-        // 步骤2：计算用户相似度（余弦相似度）
-        String similarityCypher = "MATCH (u1:User {username: $userId})-[r1:RATED]->(m:Movie)<-[r2:RATED]-(u2:User) " +
-                                  "WITH u2, collect(r1.rating) as ratings1, collect(r2.rating) as ratings2 " +
-                                  "WHERE size(ratings1) > 1 " +
-                                  "RETURN u2.username as similarUserId, cosineSimilarity(ratings1, ratings2) as similarity " +
-                                  "ORDER BY similarity DESC LIMIT 10";
+        String similarityCypher = String.format(
+                "MATCH (c1:Comment), (c2:Comment) " +
+                        "WHERE c1.creator = '%s' AND c2.creator <> '%s' " +
+                        "  AND c1.movie_id = c2.movie_id " +
+                        "WITH c2.creator as similarUserId, " +
+                        "     collect(c1.comment_rating) as ratings1, " +
+                        "     collect(c2.comment_rating) as ratings2 " +
+                        "WHERE size(ratings1) > 0 " +
+                        "RETURN similarUserId, ratings1, ratings2 " +
+                        "ORDER BY size(ratings1) DESC LIMIT 10",
+                username, username);
 
         Map<String, Object> similarityParams = new HashMap<>();
-        similarityParams.put("userId", userId.toString());
+        similarityParams.put("username", username);
         Iterable<Map<String, Object>> similarityResult = neo4jSession.query(similarityCypher, similarityParams);
 
-        // 步骤3：获取相似用户高分未看电影
-        List<String> similarUserIds = StreamSupport.stream(similarityResult.spliterator(), false)
-                .map(row -> (String) row.get("similarUserId"))
+        // 步骤3：Java中计算余弦相似度，封装相似结果
+        List<SimilarityResult> similarityResults = new ArrayList<>();
+
+
+        for (Map<String, Object> row : similarityResult) {
+            // 尝试多种可能的字段名
+            String similarUserId = null;
+            if (row.containsKey("similarUserId")) {
+                similarUserId = (String) row.get("similarUserId");
+            } else if (row.containsKey("c2.creator")) {
+                similarUserId = (String) row.get("c2.creator");
+            } else {
+                // 查找包含 creator 或 user 相关的字段
+                for (Map.Entry<String, Object> entry : row.entrySet()) {
+                    if (entry.getKey().toLowerCase().contains("creator") ||
+                            entry.getKey().toLowerCase().contains("user") ||
+                            entry.getKey().toLowerCase().contains("similar")) {
+                        similarUserId = entry.getValue() != null ? entry.getValue().toString() : null;
+                        break;
+                    }
+                }
+            }
+
+            // 尝试多种可能的字段名
+            Object ratings1Obj = null;
+            Object ratings2Obj = null;
+            if (row.containsKey("ratings1")) {
+                ratings1Obj = row.get("ratings1");
+            } else if (row.containsKey("col1") || row.containsKey("collect(c1.comment_rating)")) {
+                ratings1Obj = row.get("col1") != null ? row.get("col1") : row.get("collect(c1.comment_rating)");
+            }
+
+            if (row.containsKey("ratings2")) {
+                ratings2Obj = row.get("ratings2");
+            } else if (row.containsKey("col2") || row.containsKey("collect(c2.comment_rating)")) {
+                ratings2Obj = row.get("col2") != null ? row.get("col2") : row.get("collect(c2.comment_rating)");
+            }
+
+            List<Integer> ratings1 = convertToObjectList(ratings1Obj);
+            List<Integer> ratings2 = convertToObjectList(ratings2Obj);
+
+            // 计算余弦相似度 - 松化条件检查
+            if (similarUserId != null && ratings1 != null && ratings2 != null &&
+                    !ratings1.isEmpty() && !ratings2.isEmpty()) {
+                double similarity = calculateCosineSimilarity(ratings1, ratings2);
+                similarityResults.add(new SimilarityResult(similarUserId, similarity));
+            }
+        }
+
+        // 按相似度降序排序，取前10个最相似用户
+        similarityResults.sort(Comparator.comparingDouble(SimilarityResult::getSimilarity).reversed());
+        List<String> similarUserIds = similarityResults.stream()
+                .limit(10)
+                .map(SimilarityResult::getUserId)
                 .collect(Collectors.toList());
 
+        // 无相似用户时返回默认热门电影
         if (CollectionUtils.isEmpty(similarUserIds)) {
+            log.info("用户{}未找到相似用户，协同过滤返回默认热门电影", username);
             return getDefaultHighRatingMovies(cfTopN);
         }
 
-        String recommendCypher = "MATCH (u:User) WHERE u.username IN $similarUserIds " +
-                                 "MATCH (u)-[r:RATED]->(m:Movie) WHERE r.rating >= $threshold AND NOT m.movieId IN $excludedIds " +
-                                 "RETURN m ORDER BY r.rating DESC LIMIT $topN";
+        String similarUserIdsStr = similarUserIds.stream()
+                .map(s -> "'" + s.replace("'", "\\'") + "'")  // 关键：转义单引号，防止用户名含单引号导致语法错误
+                .collect(Collectors.joining(", ", "[", "]"));
 
-        Map<String, Object> recommendParams = new HashMap<>();
-        recommendParams.put("similarUserIds", similarUserIds);
-        recommendParams.put("threshold", likedRatingThreshold);
-        recommendParams.put("excludedIds", ratedMovieIds);
-        recommendParams.put("topN", cfTopN);
+        String ratedMovieIdsStr = ratedMovieIds.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(", ", "[", "]"));
 
-        Iterable<MovieNode> movieIterable = neo4jSession.query(MovieNode.class, recommendCypher, recommendParams);
-        return StreamSupport.stream(movieIterable.spliterator(), false)
-                .collect(Collectors.toList());
-    }
+        String recommendCypher = String.format(
+                "MATCH (c:Comment) WHERE c.creator IN %s AND c.comment_rating >= %d AND NOT c.movie_id IN %s MATCH (m:Movie) WHERE m.id = c.movie_id WITH m.id as movieId, m.name as movieName, MAX(c.comment_rating) as maxRating ORDER BY maxRating DESC LIMIT %d RETURN movieId as movie_id, movieName as name",
+                similarUserIdsStr,  // 第1个%s：手动拼接好的相似用户ID集合（带单引号+中括号）
+                likedRatingThreshold, // 第1个%d：评分阈值
+                ratedMovieIdsStr,   // 第2个%s：手动拼接好的排除电影ID集合（带中括号）
+                cfTopN);            // 第2个%d：推荐数量
 
-    /**
-     * 增强版内容推荐
-     */
-    private List<MovieNode> contentBasedRecommend(Integer userId) {
-        List<MovieNode> userLikedMovies = getUserLikedMovies(userId);
-        if (CollectionUtils.isEmpty(userLikedMovies)) {
-            return getDefaultHighRatingMovies(contentTopN);
-        }
+        Iterable<MovieNode> movieIterable = neo4jSession.query(MovieNode.class, recommendCypher, new HashMap<>());
 
-        // 提取多维度特征
-        Set<String> likedDirectors = userLikedMovies.stream()
-                .map(MovieNode::getDirectorString)
-                .filter(Objects::nonNull)
-                .flatMap(directorString -> Arrays.stream(directorString.split("\\|")))
-                .collect(Collectors.toSet());
-
-        Set<String> likedActors = userLikedMovies.stream()
-                .map(MovieNode::getActorString)
-                .filter(Objects::nonNull)
-                .flatMap(actorString -> Arrays.stream(actorString.split("\\|")))
-                .collect(Collectors.toSet());
-
-        Set<String> likedTypes = userLikedMovies.stream()
-                .map(MovieNode::getType)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        // 多路径Cypher（导演+演员+类型）
-        String cypher = "MATCH (m:Movie) " +
-                        "WHERE (m.type IN $types OR " +
-                        "EXISTS((m)-[:DIRECTED_BY]->(d:Director) WHERE d.name IN $directors) OR " +
-                        "EXISTS((m)-[:STARRED_BY]->(a:Actor) WHERE a.name IN $actors)) " +
-                        "AND NOT EXISTS((:User {username: $userIdStr})-[:RATED]->(m)) " +
-                        "RETURN m ORDER BY m.rating DESC LIMIT $topN";
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("types", likedTypes);
-        params.put("directors", likedDirectors);
-        params.put("actors", likedActors);
-        params.put("userIdStr", userId.toString());
-        params.put("topN", contentTopN);
-
-        Iterable<MovieNode> movieIterable = neo4jSession.query(MovieNode.class, cypher, params);
-        return StreamSupport.stream(movieIterable.spliterator(), false)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 增强版知识图谱推荐（多路径融合）
-     */
-    private List<MovieNode> knowledgeGraphPathRecommend(Integer userId) {
-        // 多路径Cypher（导演+演员+类型）
-        String cypher = "MATCH (u:User {username: $userIdStr})-[:POSTED]->(c:Comment)-[:TARGETS]->(m:Movie) " +
-                        "MATCH (m)-[:DIRECTED_BY]->(d:Director)-[:DIRECTED]->(m2:Movie) " +
-                        "MATCH (m)-[:STARRED_BY]->(a:Actor)-[:STARRED_IN]->(m2:Movie) " +
-                        "MATCH (m)-[:HAS_TYPE]->(t:Type)-[:BELONGS_TO]->(m2:Movie) " +
-                        "WHERE NOT EXISTS((u)-[:RATED]->(m2)) " +
-                        "WITH m2, COUNT(DISTINCT d) + COUNT(DISTINCT a) + COUNT(DISTINCT t) AS score " +
-                        "RETURN m2 ORDER BY score DESC LIMIT $topN";
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("userIdStr", userId.toString());
-        params.put("topN", kgTopN);
-
-        Iterable<MovieNode> movieIterable = neo4jSession.query(MovieNode.class, cypher, params);
         List<MovieNode> result = StreamSupport.stream(movieIterable.spliterator(), false)
                 .collect(Collectors.toList());
-
-        // 兜底：无结果时返回默认
-        return CollectionUtils.isEmpty(result) ? getDefaultHighRatingMovies(kgTopN) : result;
+        return result;
     }
 
-    /**
-     * 意图驱动过滤（新增核心逻辑）
-     */
-    private List<MovieNode> filterByIntent(List<MovieNode> movies, RecommendIntent intent) {
-        if (CollectionUtils.isEmpty(movies) || intent == null || CollectionUtils.isEmpty(intent.getParams())) {
-            return movies;
-        }
 
-        Map<String, Object> params = intent.getParams();
-        // 按导演过滤
-        if (params.containsKey("director")) {
-            String director = (String) params.get("director");
-            movies = movies.stream()
-                    .filter(m -> {
-                        String directorString = m.getDirectorString();
-                        if (directorString != null && !directorString.isEmpty()) {
-                            String[] directors = directorString.split("\\|");
-                            return Arrays.asList(directors).contains(director);
-                        }
-                        return false;
-                    })
-                    .collect(Collectors.toList());
-        }
 
-        // 按演员过滤
-        if (params.containsKey("actor")) {
-            String actor = (String) params.get("actor");
-            movies = movies.stream()
-                    .filter(m -> {
-                        String actorString = m.getActorString();
-                        if (actorString != null && !actorString.isEmpty()) {
-                            String[] actors = actorString.split("\\|");
-                            return Arrays.asList(actors).contains(actor);
-                        }
-                        return false;
-                    })
-                    .collect(Collectors.toList());
-        }
-
-        // 按类型过滤
-        if (params.containsKey("type")) {
-            String type = (String) params.get("type");
-            movies = movies.stream()
-                    .filter(m -> type.equals(m.getType()))
-                    .collect(Collectors.toList());
-        }
-
-        // 按最低评分过滤
-        if (params.containsKey("min_rating")) {
-            Double minRating = new Double(params.get("min_rating").toString());
-            movies = movies.stream()
-                    .filter(m -> Optional.ofNullable(m.getMovieRating()).orElse((double) 0).compareTo(minRating) >= 0)
-                    .collect(Collectors.toList());
-        }
-
-        return movies;
-    }
-
-    // 辅助方法：添加评分权重
-    private void addToScoreMap(List<MovieNode> movies, Map<Integer, Double> scoreMap, double weight) {
-        if (CollectionUtils.isEmpty(movies)) {
-            return;
-        }
-        for (int i = 0; i < movies.size(); i++) {
-            MovieNode movie = movies.get(i);
-            if (movie == null || movie.getInfoId() == null) {
-                continue;
-            }
-            double score = (1.0 - (double) i / movies.size()) * weight;
-            scoreMap.put(movie.getInfoId(), scoreMap.getOrDefault(movie.getInfoId(), 0.0) + score);
-        }
-    }
-
-    // 辅助方法：获取用户已评分电影ID
-    private List<Integer> getUserRatedMovieIds(Integer userId) {
-        String cypher = "MATCH (u:User {username: $userIdStr})-[:RATED]->(m:Movie) RETURN m.movieId";
-        Map<String, Object> params = new HashMap<>();
-        params.put("userIdStr", userId.toString());
-
-        Iterable<Map<String, Object>> queryResult = neo4jSession.query(cypher, params);
-        return StreamSupport.stream(queryResult.spliterator(), false)
-                .map(row -> ((Number) row.get("m.movieId")).intValue())
-                .collect(Collectors.toList());
-    }
-
-    // 辅助方法：获取用户高评分电影
-    private List<MovieNode> getUserLikedMovies(Integer userId) {
-        String cypher = "MATCH (u:User {username: $userIdStr})-[r:RATED]->(m:Movie) " +
-                        "WHERE r.rating >= $threshold RETURN m";
-        Map<String, Object> params = new HashMap<>();
-        params.put("userIdStr", userId.toString());
-        params.put("threshold", likedRatingThreshold);
-
-        Iterable<Map<String, Object>> queryResult = neo4jSession.query(cypher, params);
-        return StreamSupport.stream(queryResult.spliterator(), false)
-                .map(row -> (MovieNode) row.get("m"))
-                .collect(Collectors.toList());
-    }
-
-    // 根据用户名获取用户ID
-    public Integer getUserIdByUsername(String username) {
-        try {
-            org.example.model.User user = userMapper.selectByUsername(username);
-            if (user != null) {
-                return user.getUserid();
-            }
-            return null;
-        } catch (Exception e) {
-            log.error("根据用户名获取用户ID失败：username={}", username, e);
-            return null;
-        }
-    }
-    
     // 兜底方法：默认高评分电影
     private List<MovieNode> getDefaultHighRatingMovies(Integer topN) {
         String cypher = "MATCH (m:Movie) WHERE m.rating >= 8.0 RETURN m ORDER BY m.rating DESC LIMIT $topN";
@@ -703,6 +515,89 @@ public class MovieRecommendationService {
         Iterable<MovieNode> movieIterable = neo4jSession.query(MovieNode.class, cypher, params);
         return StreamSupport.stream(movieIterable.spliterator(), false)
                 .collect(Collectors.toList());
+    }
+    private List<Integer> getUserRatedMovieIdsByUsername(String username) {
+        String cypher = "MATCH (c:Comment) WHERE c.creator = $username RETURN c.movie_id";
+        Map<String, Object> params = new HashMap<>();
+        params.put("username", username);
+
+        Iterable<Map<String, Object>> queryResult = neo4jSession.query(cypher, params);
+        return StreamSupport.stream(queryResult.spliterator(), false)
+                .filter(row -> row.get("c.movie_id") != null)
+                .map(row -> ((Number) row.get("c.movie_id")).intValue())
+                .distinct() // 去重：同一电影多条评论仅保留一个ID
+                .collect(Collectors.toList());
+    }
+    private double calculateCosineSimilarity(List<Integer> vec1, List<Integer> vec2) {
+        if (vec1 == null || vec2 == null || vec1.isEmpty() || vec2.isEmpty()) {
+            return 0.0;
+        }
+
+        // 确保向量长度相同
+        int maxLength = Math.max(vec1.size(), vec2.size());
+        double[] v1 = new double[maxLength];
+        double[] v2 = new double[maxLength];
+
+        for (int i = 0; i < maxLength; i++) {
+            v1[i] = i < vec1.size() ? vec1.get(i) : 0.0;
+            v2[i] = i < vec2.size() ? vec2.get(i) : 0.0;
+        }
+
+        // 计算点积和范数
+        double dotProduct = 0.0;
+        double norm1 = 0.0;
+        double norm2 = 0.0;
+
+        for (int i = 0; i < maxLength; i++) {
+            dotProduct += v1[i] * v2[i];
+            norm1 += v1[i] * v1[i];
+            norm2 += v2[i] * v2[i];
+        }
+
+        // 避免除零错误
+        if (norm1 == 0 || norm2 == 0) {
+            return 0.0;
+        }
+
+        return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
+    }
+    private List<Integer> convertToObjectList(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        if (obj instanceof List) {
+            List<?> list = (List<?>) obj;
+            List<Integer> result = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Number) {
+                    result.add(((Number) item).intValue());
+                } else if (item instanceof String) {
+                    try {
+                        result.add(Integer.parseInt((String) item));
+                    } catch (NumberFormatException e) {
+                        // 忽略无法转换的字符串
+                    }
+                }
+            }
+            return result;
+        } else if (obj.getClass().isArray() && obj instanceof Long[]) {
+            // 处理Long[]数组
+            Long[] longArray = (Long[]) obj;
+            List<Integer> result = new ArrayList<>();
+            for (Long value : longArray) {
+                if (value != null) {
+                    result.add(value.intValue());
+                }
+            }
+            return result;
+        } else if (obj.getClass().isArray() && obj instanceof Integer[]) {
+            // 处理Integer[]数组
+            Integer[] intArray = (Integer[]) obj;
+            return Arrays.asList(intArray);
+        }
+
+        return null;
     }
 
 }
