@@ -39,8 +39,7 @@ public class MovieRecommendationService {
     private UserMapper userMapper;
 
     // 配置注入（替代硬编码）
-    @Value("${recommend.cf.topN}")
-    private Integer cfTopN;
+
     @Value("${recommend.content.topN}")
     private Integer contentTopN;
     @Value("${recommend.kg.topN}")
@@ -96,43 +95,6 @@ public class MovieRecommendationService {
         }
         return 0;
     }
-
-    /**
-     * 根据ID获取电影详情
-     */
-    public Result<MovieNode> getMovieById(Long id) {
-        try {
-            Optional<MovieNode> movieOpt = movieRepository.findById(id);
-
-            if (!movieOpt.isPresent()) {
-                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "电影不存在");
-            }
-
-            return Result.success(movieOpt.get());
-        } catch (Exception e) {
-            log.error("获取电影详情失败：id={}", id, e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影详情失败");
-        }
-    }
-
-    /**
-     * 根据电影ID获取电影详情（通过movie_id字段）
-     */
-    public Result<MovieNode> getMovieByMovieId(Integer movieId) {
-        try {
-            Optional<MovieNode> movieOpt = movieRepository.findByInfoId(movieId);
-
-            if (!movieOpt.isPresent()) {
-                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "电影不存在");
-            }
-
-            return Result.success(movieOpt.get());
-        } catch (Exception e) {
-            log.error("获取电影详情失败：movieId={}", movieId, e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影详情失败");
-        }
-    }
-
     /**
      * 搜索电影（按名称、类型、导演、演员等）
      */
@@ -192,43 +154,6 @@ public class MovieRecommendationService {
             return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "搜索电影失败");
         }
     }
-
-    /**
-     * 获取热门电影（高评分电影）
-     */
-    public Result<List<MovieNode>> getTopRatedMovies(int count) {
-        try {
-            List<MovieNode> movies = movieRepository.findTopRatedMovies(count);
-
-            return Result.success(movies);
-        } catch (Exception e) {
-            log.error("获取热门电影失败：count={}", count, e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取热门电影失败");
-        }
-    }
-
-    /**
-     * 获取最新电影
-     */
-    public Result<List<MovieNode>> getLatestMovies(int count) {
-        // 由于MovieNode中没有日期字段，我们使用评分和ID作为替代指标
-        try {
-            // 使用Cypher查询按ID降序排列（假设ID越大越新）
-            String cypher = "MATCH (m:Movie) RETURN m ORDER BY m.id DESC LIMIT $count";
-            Map<String, Object> params = new HashMap<>();
-            params.put("count", count);
-
-            Iterable<MovieNode> movieIterable = neo4jSession.query(MovieNode.class, cypher, params);
-            List<MovieNode> movies = StreamSupport.stream(movieIterable.spliterator(), false)
-                    .collect(Collectors.toList());
-
-            return Result.success(movies);
-        } catch (Exception e) {
-            log.error("获取最新电影失败：count={}", count, e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取最新电影失败");
-        }
-    }
-
     /**
      * 根据类型获取电影
      */
@@ -325,37 +250,6 @@ public class MovieRecommendationService {
 
             log.info("通过关系查询到 {} 条评论", results.size());
 
-//            // 如果通过关系没查到，尝试通过属性查询
-//            if (results.isEmpty()) {
-//                log.info("通过关系未查询到评论，尝试通过属性查询电影ID {}", movieId);
-//                String attrCypher = "MATCH (c:Comment) " +
-//                        "WHERE c.movie_id = $movieId " +
-//                        "RETURN " +
-//                        "id(c) AS comment_id, " +
-//                        "c.movie_id AS movie_id, " +
-//                        "c.creator AS creator, " +
-//                        "c.content AS content, " +
-//                        "c.comment_rating AS comment_rating, " +
-//                        "c.comment_time AS comment_time, " +
-//                        "c.comment_add_time AS comment_add_time";
-//
-//                Iterable<Map<String, Object>> attrQueryResult = neo4jSession.query(attrCypher, params);
-//
-//                for (Map<String, Object> row : attrQueryResult) {
-//                    Map<String, Object> resultRow = new HashMap<>();
-//                    resultRow.put("comment_id", row.get("comment_id"));
-//                    resultRow.put("movie_id", row.get("movie_id"));
-//                    resultRow.put("creator", row.get("creator"));
-//                    resultRow.put("content", row.get("content"));
-//                    resultRow.put("comment_rating", row.get("comment_rating"));
-//                    resultRow.put("comment_time", row.get("comment_time"));
-//                    resultRow.put("comment_add_time", row.get("comment_add_time"));
-//                    results.add(resultRow);
-//                }
-//
-//                log.info("通过属性查询到 {} 条评论", results.size());
-//            }
-
             return Result.success(results);
         } catch (Exception e) {
             log.error("获取电影评论失败：movieId={}", movieId, e);
@@ -401,7 +295,7 @@ public class MovieRecommendationService {
         List<Integer> ratedMovieIds = getUserRatedMovieIdsByUsername(username);
         if (CollectionUtils.isEmpty(ratedMovieIds)) {
             log.warn("用户{}无评分记录，协同过滤返回默认热门电影", username);
-            return getDefaultHighRatingMovies(cfTopN);
+            return getDefaultHighRatingMovies(20);
         }
 
         String similarityCypher = String.format(
@@ -479,7 +373,7 @@ public class MovieRecommendationService {
         // 无相似用户时返回默认热门电影
         if (CollectionUtils.isEmpty(similarUserIds)) {
             log.info("用户{}未找到相似用户，协同过滤返回默认热门电影", username);
-            return getDefaultHighRatingMovies(cfTopN);
+            return getDefaultHighRatingMovies(20);
         }
 
         String similarUserIdsStr = similarUserIds.stream()
@@ -491,11 +385,11 @@ public class MovieRecommendationService {
                 .collect(Collectors.joining(", ", "[", "]"));
 
         String recommendCypher = String.format(
-                "MATCH (c:Comment) WHERE c.creator IN %s AND c.comment_rating >= %d AND NOT c.movie_id IN %s MATCH (m:Movie) WHERE m.id = c.movie_id WITH m.id as movieId, m.name as movieName, MAX(c.comment_rating) as maxRating ORDER BY maxRating DESC LIMIT %d RETURN movieId as movie_id, movieName as name",
-                similarUserIdsStr,  // 第1个%s：手动拼接好的相似用户ID集合（带单引号+中括号）
+                "MATCH (c:Comment) WHERE c.creator IN %s AND c.comment_rating >= %d AND NOT c.movie_id IN %s MATCH (m:Movie) WHERE m.id = c.movie_id WITH m, MAX(c.comment_rating) as maxRating ORDER BY maxRating DESC LIMIT %d RETURN m as movie",
+                similarUserIdsStr,  // 第1个%s：拼接好的用户集合
                 likedRatingThreshold, // 第1个%d：评分阈值
-                ratedMovieIdsStr,   // 第2个%s：手动拼接好的排除电影ID集合（带中括号）
-                cfTopN);            // 第2个%d：推荐数量
+                ratedMovieIdsStr,   // 第2个%s：拼接好的电影ID集合
+                20);            // 第2个%d：推荐数量
 
         Iterable<MovieNode> movieIterable = neo4jSession.query(MovieNode.class, recommendCypher, new HashMap<>());
 
@@ -508,7 +402,7 @@ public class MovieRecommendationService {
 
     // 兜底方法：默认高评分电影
     private List<MovieNode> getDefaultHighRatingMovies(Integer topN) {
-        String cypher = "MATCH (m:Movie) WHERE m.rating >= 8.0 RETURN m ORDER BY m.rating DESC LIMIT $topN";
+        String cypher = "MATCH (m:Movie) WHERE m.movie_rating >= 8.0 RETURN m ORDER BY m.rating DESC LIMIT $topN";
         Map<String, Object> params = new HashMap<>();
         params.put("topN", topN);
 

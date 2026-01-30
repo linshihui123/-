@@ -31,7 +31,6 @@
       </div>
     </div>
 
-    <!-- 推荐电影列表 -->
     <MovieList :movies="movies" :loading="loading" :showTitle="true" @movie-click="handleMovieClick" />
   </div>
 </template>
@@ -134,20 +133,47 @@ export default {
       this.loading = true;
       try {
         const response = await getCollaborativeFilteringRecommend(this.selectedUserId);
-        if (response.data.code === 200) {
-          this.movies = response.data.data || [];
+        console.log('🔍 调试：完整响应对象:', response);
+        console.log('🔍 调试：response.data结构:', response.data);
+
+        // 添加更灵活的数据提取逻辑
+        let recommendations = [];
+        if (response.data && response.data.code === 200) {
+          // 尝试多种可能的数据路径
+          if (response.data.data) {
+            recommendations = response.data.data;
+          } else if (Array.isArray(response.data)) {
+            recommendations = response.data;
+          } else if (response.data.recommendations) {
+            recommendations = response.data.recommendations;
+          }
+        } else if (Array.isArray(response.data)) {
+          // 如果直接返回数组
+          recommendations = response.data;
+        }
+
+        console.log('🔍 调试：提取的recommendations数据:', recommendations);
+        console.log('🔍 调试：recommendations长度:', recommendations.length);
+
+        if (recommendations && recommendations.length > 0) {
+          this.movies = recommendations;
+          console.log('✅ 成功设置movies数据，数量:', this.movies.length);
+          console.log('📌 第一部电影名称:', recommendations[0].movieName || recommendations[0].name || '未知');
         } else {
-          this.$message.error(response.data.message || '获取推荐失败');
           this.movies = [];
+          console.warn('⚠️ 数据为空或格式不匹配');
         }
       } catch (error) {
-        console.error('获取协同过滤推荐失败:', error);
+        console.error('❌ 获取协同过滤推荐失败:', error);
+        // 兼容旧版JS语法，避免使用?.操作符
+        console.error('❌ 错误详情:', error.response ? error.response.data : undefined, error.message);
         this.$message.error('获取推荐失败，请稍后重试');
         this.movies = [];
       } finally {
         this.loading = false;
       }
     },
+
     handleMovieClick(movie) {
       console.log('点击了电影:', movie);
       // 这里可以添加电影详情查看逻辑

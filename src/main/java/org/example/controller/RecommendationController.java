@@ -46,4 +46,5 @@ public class RecommendationController {
             return Result.error(org.example.response.ResultCodeEnum.SYSTEM_ERROR.getCode(), "协同过滤推荐失败");
         }
     }
+
 }
