@@ -31,7 +31,22 @@
       </div>
     </div>
 
-    <MovieList :movies="movies" :loading="loading" :showTitle="true" @movie-click="handleMovieClick" />
+    <!-- 推荐理由展示区域 -->
+    <div class="recommendation-explanation" v-if="movies.length > 0">
+      <el-card shadow="never" class="explanation-card">
+        <div class="explanation-header">
+          <i class="el-icon-lightning"></i>
+          <span class="explanation-title">协同过滤推荐原理</span>
+        </div>
+        <div class="explanation-content">
+          <p>系统通过分析您与其他用户的评分相似性，计算余弦相似度，找出与您偏好相似的用户群体。</p>
+          <p>然后推荐这些相似用户评分较高的电影给您，确保推荐结果符合您的个人口味。</p>
+          <p class="similarity-note">💡 相似度越高，推荐的相关性越强</p>
+        </div>
+      </el-card>
+    </div>
+
+    <MovieList :movies="movies" :loading="loading" :showTitle="true" recommendationType="collaborative" @movie-click="handleMovieClick" />
   </div>
 </template>
 
@@ -219,6 +234,48 @@ export default {
 
 .recommend-stats {
   margin-top: 15px;
+}
+
+.recommendation-explanation {
+  margin: 20px 0;
+}
+
+.explanation-card {
+  border-left: 4px solid #409EFF;
+  background-color: #f8f9ff;
+  border-radius: 8px;
+}
+
+.explanation-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #eef5ff;
+  border-bottom: 1px solid #dcdfe6;
+  font-weight: 600;
+  color: #409EFF;
+}
+
+.explanation-header i {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.explanation-content {
+  padding: 16px;
+  line-height: 1.6;
+  color: #606266;
+}
+
+.explanation-content p {
+  margin: 8px 0;
+}
+
+.similarity-note {
+  margin-top: 12px;
+  font-style: italic;
+  color: #909399;
+  font-size: 14px;
 }
 
 .el-form-item {

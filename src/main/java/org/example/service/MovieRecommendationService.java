@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -494,4 +495,204 @@ public class MovieRecommendationService {
         return null;
     }
 
+    public Object getMovieAnalysis() {
+        // 这里可以调用Neo4j的Cypher查询语句来获取电影分析数据
+        /**
+         *
+         * 展示电影评论的情感倾向（正面 / 负面 / 中性，基于 CONTENT 文本分析）；
+         */
+        // TODO：使用coze来接收处理数据
+        String cypher = "MATCH (m:Movie) RETURN m.title, m.director";
+        return null;
+    }
+
+    /**
+     * 展示单部电影的评分分布（如 1 分占比 10%、4 分占比 50%）
+     * @param movieName 电影名称（精准匹配）
+     * @return 结构化评分分布结果（含电影基本信息、各分数段统计、总评分数）
+     */
+    public Object getMovieRatings(String movieName) {
+        // 1. 入参非空校验
+        if (movieName == null || movieName.trim().isEmpty()) {
+            log.error("电影评分查询失败：电影名称不能为空");
+            return buildErrorResult(400, "参数错误，电影名称不能为空");
+        }
+        String trimedMovieName = movieName.trim();
+
+        try {
+            // 2. 第一步：根据电影名称查询Movie节点，获取电影ID和基本信息（确保电影存在）
+            Map<String, Object> movieParams = new HashMap<>();
+            movieParams.put("movieName", trimedMovieName);
+            // Cypher：精准匹配电影名称，返回Movie节点基本属性
+            String movieCypher = "MATCH (m:Movie) WHERE m.name = $movieName RETURN m.id, m.name, m.movie_rating, m.type, m.region LIMIT 1";
+            Iterable<Map<String, Object>> movieResult = neo4jSession.query(movieCypher, movieParams);
+            List<Map<String, Object>> movieList = StreamSupport.stream(movieResult.spliterator(), false)
+                    .collect(Collectors.toList());
+
+            // 电影不存在时返回友好提示
+            if (CollectionUtils.isEmpty(movieList)) {
+                log.warn("电影评分查询失败：未找到名称为[{}]的电影", trimedMovieName);
+                return buildErrorResult(404, "未找到名称为【" + trimedMovieName + "】的电影");
+            }
+
+            // 提取电影基本信息
+            Map<String, Object> movieInfo = movieList.get(0);
+            Integer movieId = (Integer) movieInfo.get("m.id");
+
+            // 3. 第二步：根据电影ID统计Comment节点的评分分布（1-5分各分数段数量）
+            Map<String, Object> ratingParams = new HashMap<>();
+            ratingParams.put("movieId", movieId);
+            // Cypher：按评分分组统计数量，自动过滤无评分的评论，确保评分是1-5的整数
+            String ratingCypher = "MATCH (c:Comment) " +
+                    "WHERE c.movie_id = $movieId AND c.comment_rating IS NOT NULL " +
+                    "  AND c.comment_rating IN [1,2,3,4,5] " +
+                    "WITH c.comment_rating as score, COUNT(c) as ratingCount " +
+                    "ORDER BY score ASC " +
+                    "RETURN score, ratingCount";
+            Iterable<Map<String, Object>> ratingResult = neo4jSession.query(ratingCypher, ratingParams);
+            List<Map<String, Object>> ratingList = StreamSupport.stream(ratingResult.spliterator(), false)
+                    .collect(Collectors.toList());
+
+            // 4. 第三步：计算各分数段占比，补全1-5分所有分数段（无评分的分数段数量/占比为0）
+            int totalRating = ratingList.stream()
+                    .mapToInt(item -> ((Long) item.get("ratingCount")).intValue())
+                    .sum(); // 总评分数量
+
+            // 初始化1-5分评分分布，默认数量0、占比0%
+            Map<Integer, Map<String, Object>> ratingDistribution = new TreeMap<>(); // TreeMap保证按分数升序
+            for (int score = 1; score <= 5; score++) {
+                Map<String, Object> scoreInfo = new HashMap<>();
+                scoreInfo.put("ratingCount", 0);
+                scoreInfo.put("proportion", "0.00%");
+                ratingDistribution.put(score, scoreInfo);
+            }
+
+            // 填充统计结果，计算占比（保留2位小数，四舍五入）
+            for (Map<String, Object> item : ratingList) {
+                Integer score = ((Long) item.get("score")).intValue(); // Neo4j返回Long，转Integer
+                int count = ((Long) item.get("ratingCount")).intValue();
+                // 计算占比，总评分为0时占比保持0%
+                String proportion = totalRating == 0 ? "0.00%" :
+                        new BigDecimal(count * 100.0 / totalRating)
+                                .setScale(2, RoundingMode.HALF_UP)
+                                .toString() + "%";
+                // 更新数量和占比
+                ratingDistribution.get(score).put("ratingCount", count);
+                ratingDistribution.get(score).put("proportion", proportion);
+            }
+
+            // 5. 构建最终结构化返回结果
+            Map<String, Object> finalResult = new HashMap<>();
+            finalResult.put("code", 200);
+            finalResult.put("msg", "查询成功");
+            finalResult.put("movieInfo", movieInfo); // 电影基本信息
+            finalResult.put("totalRating", totalRating); // 总评分数量
+            finalResult.put("ratingDistribution", ratingDistribution); // 1-5分评分分布（升序）
+
+            log.info("电影[{}({})]评分查询成功，总评分数：{}", trimedMovieName, movieId, totalRating);
+            return finalResult;
+
+        } catch (Exception e) {
+            // 全局异常捕获，避免接口崩溃
+            log.error("电影[{}]评分查询发生异常", movieName, e);
+            return buildErrorResult(500, "服务器内部异常，电影评分查询失败");
+        }
+    }
+
+    /**
+     * 构建统一的异常返回结果
+     * @param code 错误码（400参数错/404未找到/500服务器错）
+     * @param msg 错误信息
+     * @return 结构化异常结果
+     */
+    private Map<String, Object> buildErrorResult(int code, String msg) {
+        Map<String, Object> errorResult = new HashMap<>();
+        errorResult.put("code", code);
+        errorResult.put("msg", msg);
+        errorResult.put("movieInfo", null);
+        errorResult.put("totalRating", 0);
+        errorResult.put("ratingDistribution", null);
+        return errorResult;
+    }
+
+    /**
+     * 按类型统计电影的平均评分、电影数量
+     * 统计项：各类别下的「平均电影评分」「电影数量」
+     * @return 类型统计结果列表
+     */
+    public List<Map<String, Object>> getMovieRatingsByType() {
+        try {
+            // 简化查询：按类型分组统计
+            String typeCypher = "MATCH (m:Movie) " +
+                    "WHERE m.type IS NOT NULL AND m.movie_rating IS NOT NULL " +
+                    "RETURN m.type as movieType, " +
+                    "       avg(m.movie_rating) as avgRating, " +
+                    "       count(m) as movieCount";
+            
+            Iterable<Map<String, Object>> typeQueryResult = neo4jSession.query(typeCypher, new HashMap<>());
+            List<Map<String, Object>> typeResults = StreamSupport.stream(typeQueryResult.spliterator(), false)
+                    .collect(Collectors.toList());
+
+            // 处理类型维度数据
+            List<Map<String, Object>> typeStatistics = new ArrayList<>();
+            for (Map<String, Object> item : typeResults) {
+                Map<String, Object> typeStat = new HashMap<>();
+                typeStat.put("movieType", item.get("movieType"));
+                typeStat.put("avgMovieRating", new BigDecimal(item.get("avgRating").toString()).setScale(2, RoundingMode.HALF_UP));
+                typeStat.put("movieTotalCount", ((Long) item.get("movieCount")).intValue());
+                typeStatistics.add(typeStat);
+            }
+            
+            // 按电影数量降序排序
+            typeStatistics.sort((a, b) -> Integer.compare((Integer) b.get("movieTotalCount"), (Integer) a.get("movieTotalCount")));
+
+            log.info("电影类型维度统计完成，类型数：{}", typeStatistics.size());
+            return typeStatistics;
+
+        } catch (Exception e) {
+            // 全局异常捕获，保证接口不崩溃，返回友好错误信息
+            log.error("按类型统计电影评分发生异常", e);
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * 按地区统计电影的平均评分、电影数量
+     * 统计项：各地区下的「平均电影评分」「电影数量」
+     * @return 地区统计结果列表
+     */
+    public List<Map<String, Object>> getMovieRatingsByRegion() {
+        try {
+            // 简化查询：按地区分组统计
+            String regionCypher = "MATCH (m:Movie) " +
+                    "WHERE m.region IS NOT NULL AND m.movie_rating IS NOT NULL " +
+                    "RETURN m.region as movieRegion, " +
+                    "       avg(m.movie_rating) as avgRating, " +
+                    "       count(m) as movieCount";
+            
+            Iterable<Map<String, Object>> regionQueryResult = neo4jSession.query(regionCypher, new HashMap<>());
+            List<Map<String, Object>> regionResults = StreamSupport.stream(regionQueryResult.spliterator(), false)
+                    .collect(Collectors.toList());
+
+            // 处理地区维度数据
+            List<Map<String, Object>> regionStatistics = new ArrayList<>();
+            for (Map<String, Object> item : regionResults) {
+                Map<String, Object> regionStat = new HashMap<>();
+                regionStat.put("movieRegion", item.get("movieRegion"));
+                regionStat.put("avgMovieRating", new BigDecimal(item.get("avgRating").toString()).setScale(2, RoundingMode.HALF_UP));
+                regionStat.put("movieTotalCount", ((Long) item.get("movieCount")).intValue());
+                regionStatistics.add(regionStat);
+            }
+            
+            // 按电影数量降序排序
+            regionStatistics.sort((a, b) -> Integer.compare((Integer) b.get("movieTotalCount"), (Integer) a.get("movieTotalCount")));
+
+            log.info("电影地区维度统计完成，地区数：{}", regionStatistics.size());
+            return regionStatistics;
+
+        } catch (Exception e) {
+            log.error("按地区统计电影评分发生异常", e);
+            return new ArrayList<>();
+        }
+    }
 }

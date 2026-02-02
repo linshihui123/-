@@ -1,32 +1,5 @@
 import request from '@/utils/request'
 
-// 解析用户意图（调用Dify集成接口）
-export function parseUserIntent(data) {
-    return request({
-        url: '/dify/parseIntent',
-        method: 'post',
-        data
-    })
-}
-
-// 获取电影推荐结果 - GET方式
-export function getRecommendMovies(params) {
-    return request({
-        url: '/movie/recommend',
-        method: 'get',
-        params
-    })
-}
-
-// 获取电影推荐结果 - POST方式（支持请求体）
-export function getRecommendMoviesPost(data) {
-    return request({
-        url: '/movie/recommend',
-        method: 'post',
-        data
-    })
-}
-
 // 获取电影详情
 export function getMovieDetail(movieId) {
     return request({
@@ -43,18 +16,34 @@ export function getCollaborativeFilteringRecommend(userId) {
     })
 }
 
-// 获取默认协同过滤推荐
-export function getDefaultCollaborativeFilteringRecommend() {
-    return request({
-        url: '/recommendation/collaborative-filtering',
-        method: 'get'
-    })
-}
-
 // 获取所有评论创建者
 export function getAllCommentCreators() {
     return request({
         url: '/comment/creators',
+        method: 'get'
+    })
+}
+
+// 获取单部电影的评分分布
+export function getMovieRatings(movieName) {
+    return request({
+        url: `/recommendation/movie-ratings/${encodeURIComponent(movieName)}`,
+        method: 'get'
+    })
+}
+
+// 按类型统计电影的平均评分和电影数量
+export function getMovieRatingsByType() {
+    return request({
+        url: '/recommendation/movie-ratings-by-type',
+        method: 'get'
+    })
+}
+
+// 按地区统计电影的平均评分和电影数量
+export function getMovieRatingsByRegion() {
+    return request({
+        url: '/recommendation/movie-ratings-by-region',
         method: 'get'
     })
 }

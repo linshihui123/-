@@ -1,5 +1,6 @@
 <template>
   <div class="movie-list-container" v-loading="loading">
+
 <el-card shadow="hover" v-if="movies.length > 0">
   <div slot="header" class="card-header" v-if="showTitle">
     <span>推荐结果（共{{ movies.length }}部）</span>
@@ -8,7 +9,7 @@
   <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="movie in movies" :key="movie.id" class="movie-card">
     <el-card class="movie-item shadow-lift" @click.native="handleMovieClick(movie)">
         <div class="movie-content">
-          <div class="movie-name">{{ movie.movieName || movie.name || '未知电影' }}</div>
+          <div class="movie-name">{{ movie.movieName || movie.name || movie.movie_name || '未知电影' }}</div>
 
           <div class="movie-metadata">
             <div class="metadata-item">
@@ -17,7 +18,7 @@
             </div>
             <div class="metadata-item">
               <i class="el-icon-location"></i>
-              <span>{{ movie.direction || '未知' }}</span>
+              <span>{{ movie.direction || movie.region || movie.area || '未知' }}</span>
             </div>
             <div class="metadata-item" v-if="movie.rating && movie.rating !== '暂无评分'">
               <i class="el-icon-star-on"></i>
@@ -51,6 +52,23 @@
 <script>
 export default {
   name: 'MovieList',
+  
+  // 调试：当movies数据变化时输出到控制台
+  watch: {
+    movies: {
+      handler(newVal) {
+        console.log('🎬 MovieList 组件接收到数据:', newVal);
+        if (newVal && newVal.length > 0) {
+          console.log('📌 第一部电影详情:', newVal[0]);
+          console.log('📌 电影名称:', newVal[0].movieName || newVal[0].name || '未知');
+          console.log('📌 电影ID:', newVal[0].id);
+          console.log('📌 电影类型:', newVal[0].type);
+          console.log('📌 评分:', newVal[0].movieRating);
+        }
+      },
+      immediate: true
+    }
+  },
   props: {
     movies: {
       type: Array,
@@ -119,6 +137,17 @@ export default {
   padding: 0 15px;
 }
 
+.debug-info {
+  background: #e7f3ff;
+  border-left: 4px solid #2196f3;
+  padding: 15px;
+  margin-bottom: 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #333;
+  overflow-x: auto;
+}
+
 .card-header {
   font-size: 18px;
   font-weight: 600;
@@ -128,11 +157,12 @@ export default {
 
 .movie-card {
   margin-bottom: 25px;
+  width: 220px;
 }
 
 .movie-item {
-  height: auto;
-  min-height: 280px;
+  height: 400px;
+  min-height: 400px;
   cursor: pointer;
   transition: all 0.3s ease;
   border: none;
@@ -145,13 +175,14 @@ export default {
 
 .movie-content {
   padding: 20px;
+  height: 280px;
 }
 
 .movie-name {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #333;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -198,14 +229,14 @@ export default {
 }
 
 .movie-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
-  line-height: 1.6;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 67px;
+  min-height: 60px;
 }
 
 /* 响应式设计 */
