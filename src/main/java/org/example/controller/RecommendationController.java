@@ -1,6 +1,7 @@
 package org.example.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.model.CollaborativeFilteringResult;
 import org.example.model.MovieNode;
 import org.example.response.Result;
 import org.example.response.ResultCodeEnum;
@@ -25,14 +26,23 @@ public class RecommendationController {
     /**
      * 基于用户评分的协同过滤推荐
      */
+    /**
+     * 基于用户名的协同过滤推荐接口
+     * 新增返回：用户已评分电影 + 相似用户及相似度 + 推荐电影
+     * @param userId 用户名/用户ID
+     * @return Result<CollaborativeFilteringResult> 封装所有推荐相关数据
+     */
     @GetMapping("/collaborative-filtering/{userId}")
-    public Result<List<MovieNode>> collaborativeFilteringRecommend(@PathVariable String userId) {
+    public Result<CollaborativeFilteringResult> collaborativeFilteringRecommend(@PathVariable String userId) {
         try {
-            List<MovieNode> recommendations = recommendationService.collaborativeFilteringRecommendByUsername(userId);
+            // 调用修改后的Service方法，返回封装后的DTO对象
+            CollaborativeFilteringResult recommendations = recommendationService.collaborativeFilteringRecommendByUsername(userId);
+            // 成功返回DTO对象，前端可一次性获取所有数据
             return Result.success(recommendations);
         } catch (Exception e) {
             log.error("协同过滤推荐失败：userId={}", userId, e);
-            return Result.error(org.example.response.ResultCodeEnum.SYSTEM_ERROR.getCode(), "协同过滤推荐失败");
+            // 保持原有异常返回逻辑，统一错误码和提示
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "协同过滤推荐失败");
         }
     }
 

@@ -40,6 +40,14 @@
                 <el-button
                     type="primary"
                     plain
+                    :class="{ 'nav-active': activeTab === 'stats' }"
+                    @click="switchTab('stats')"
+                >
+                  <i class="el-icon-pie-chart"></i> 评分统计
+                </el-button>
+                <el-button
+                    type="primary"
+                    plain
                     :class="{ 'nav-active': activeTab === 'graph' }"
                     @click="switchTab('graph')"
                 >
@@ -111,6 +119,13 @@
                       <p>探索电影、导演、演员之间的关系</p>
                     </div>
                   </el-card>
+                  <el-card class="feature-card" @click.native="switchTab('stats')">
+                    <div class="feature-content">
+                      <i class="el-icon-pie-chart feature-icon" style="color: #f56c6c;"></i>
+                      <h3>评分统计</h3>
+                      <p>电影评分分布与类型统计</p>
+                    </div>
+                  </el-card>
                 </div>
               </el-card>
             </el-col>
@@ -147,6 +162,15 @@
           <KnowledgeGraph :current-user="currentUser" />
         </div>
 
+        <!-- 评分统计页面 -->
+        <div v-if="activeTab === 'stats'" class="stats-container">
+          <div class="layout-wrapper">
+            <div class="main-content">
+              <MovieRatingStats />
+            </div>
+          </div>
+        </div>
+
         <!-- 电影详情弹窗 -->
         <el-dialog title="电影详情" :visible.sync="detailDialogVisible" width="60%">
           <div v-if="selectedMovie">
@@ -158,6 +182,8 @@
             <p><strong>演员：</strong>{{ getActorNames(selectedMovie.actors) }}</p>
             <p><strong>简介：</strong>{{ selectedMovie.instruction || '暂无介绍' }}</p>
           </div>
+        </el-dialog>
+        <el-dialog title="电影评论" :visible.sync="commentDialogVisible" width="60%">
         </el-dialog>
 
         <!-- 用户认证弹窗 -->
@@ -194,6 +220,7 @@ import MovieBrowse from './components/MovieBrowse.vue'
 import UserAuth from './components/UserAuth.vue'
 import KnowledgeGraph from './components/KnowledgeGraph.vue'
 import CollaborativeFilteringRecommend from './components/CollaborativeFilteringRecommend.vue'
+import MovieRatingStats from './components/MovieRatingStats.vue'
 // 移除推荐相关接口导入
 import { getMovieDetail } from './api/recommend'
 import axios from 'axios'
@@ -205,7 +232,8 @@ export default {
     MovieBrowse,
     UserAuth,
     KnowledgeGraph,
-    CollaborativeFilteringRecommend
+    CollaborativeFilteringRecommend,
+    MovieRatingStats
   },
   data() {
     return {
@@ -214,6 +242,7 @@ export default {
       currentMovies: [], // 当前显示的电影列表
       loading: false,
       detailDialogVisible: false,
+      commentDialogVisible: false,
       selectedMovie: null,
       showTitle: true,
       authDialogVisible: false,
@@ -401,17 +430,6 @@ export default {
       }
     },
 
-    // 获取节点类型名称
-    getNodeTypeName(type) {
-      const typeMap = {
-        'movie': '电影',
-        'director': '导演',
-        'actor': '演员',
-        'genre': '类型',
-        'region': '地区'
-      };
-      return typeMap[type] || type;
-    },
 
     // 退出登录
     logout() {

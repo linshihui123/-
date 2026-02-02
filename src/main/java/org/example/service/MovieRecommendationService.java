@@ -288,26 +288,39 @@ public class MovieRecommendationService {
         return 0;
     }
 
+
     /**
-     * 基于用户名的协同过滤推荐（接收字符串用户名）
+     * 基于用户名的协同过滤推荐（返回完整结果：推荐电影+用户评分电影+相似度）
      */
-    public List<MovieNode> collaborativeFilteringRecommendByUsername(String username) {
-        // 步骤1：获取目标用户已评分电影ID（基于Comment节点movie_id）
-        List<Integer> ratedMovieIds = getUserRatedMovieIdsByUsername(username);
+    public CollaborativeFilteringResult collaborativeFilteringRecommendByUsername(String username) {
+        CollaborativeFilteringResult result = new CollaborativeFilteringResult();
+
+        // 步骤1：获取目标用户已评分电影（含评分信息，而非仅ID）
+        List<CollaborativeFilteringResult.RatedMovieDTO> userRatedMovies = getUserRatedMoviesByUsername(username);
+        result.setUserRatedMovies(userRatedMovies);
+
+        // 步骤2：处理无评分记录场景
+        List<Long> ratedMovieIds = userRatedMovies.stream()
+                .map(dto -> dto.getMovie().getId())
+                .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(ratedMovieIds)) {
             log.warn("用户{}无评分记录，协同过滤返回默认热门电影", username);
-            return getDefaultHighRatingMovies(20);
+            result.setRecommendedMovies(getDefaultHighRatingMovies(20));
+            result.setSimilarityResults(Collections.emptyList());
+            return result;
         }
 
+        // 步骤3：查询与目标用户有共同评分的其他用户
         String similarityCypher = String.format(
                 "MATCH (c1:Comment), (c2:Comment) " +
                         "WHERE c1.creator = '%s' AND c2.creator <> '%s' " +
                         "  AND c1.movie_id = c2.movie_id " +
                         "WITH c2.creator as similarUserId, " +
                         "     collect(c1.comment_rating) as ratings1, " +
-                        "     collect(c2.comment_rating) as ratings2 " +
+                        "     collect(c2.comment_rating) as ratings2, " +
+                        "     collect(c1.movie_id) as commonMovieIds " + // 新增：记录共同评分电影ID
                         "WHERE size(ratings1) > 0 " +
-                        "RETURN similarUserId, ratings1, ratings2 " +
+                        "RETURN similarUserId, ratings1, ratings2, commonMovieIds " +
                         "ORDER BY size(ratings1) DESC LIMIT 10",
                 username, username);
 
@@ -315,88 +328,110 @@ public class MovieRecommendationService {
         similarityParams.put("username", username);
         Iterable<Map<String, Object>> similarityResult = neo4jSession.query(similarityCypher, similarityParams);
 
-        // 步骤3：Java中计算余弦相似度，封装相似结果
+        // 步骤4：计算余弦相似度，封装相似结果（含共同评分电影数辅助信息）
         List<SimilarityResult> similarityResults = new ArrayList<>();
-
-
         for (Map<String, Object> row : similarityResult) {
-            // 尝试多种可能的字段名
-            String similarUserId = null;
-            if (row.containsKey("similarUserId")) {
-                similarUserId = (String) row.get("similarUserId");
-            } else if (row.containsKey("c2.creator")) {
-                similarUserId = (String) row.get("c2.creator");
-            } else {
-                // 查找包含 creator 或 user 相关的字段
-                for (Map.Entry<String, Object> entry : row.entrySet()) {
-                    if (entry.getKey().toLowerCase().contains("creator") ||
-                            entry.getKey().toLowerCase().contains("user") ||
-                            entry.getKey().toLowerCase().contains("similar")) {
-                        similarUserId = entry.getValue() != null ? entry.getValue().toString() : null;
-                        break;
-                    }
-                }
-            }
+            // 提取相似用户ID
+            String similarUserId = extractSimilarUserId(row);
+            // 提取评分列表
+            List<Integer> ratings1 = convertToObjectList(row.get("ratings1"));
+            List<Integer> ratings2 = convertToObjectList(row.get("ratings2"));
 
-            // 尝试多种可能的字段名
-            Object ratings1Obj = null;
-            Object ratings2Obj = null;
-            if (row.containsKey("ratings1")) {
-                ratings1Obj = row.get("ratings1");
-            } else if (row.containsKey("col1") || row.containsKey("collect(c1.comment_rating)")) {
-                ratings1Obj = row.get("col1") != null ? row.get("col1") : row.get("collect(c1.comment_rating)");
-            }
-
-            if (row.containsKey("ratings2")) {
-                ratings2Obj = row.get("ratings2");
-            } else if (row.containsKey("col2") || row.containsKey("collect(c2.comment_rating)")) {
-                ratings2Obj = row.get("col2") != null ? row.get("col2") : row.get("collect(c2.comment_rating)");
-            }
-
-            List<Integer> ratings1 = convertToObjectList(ratings1Obj);
-            List<Integer> ratings2 = convertToObjectList(ratings2Obj);
-
-            // 计算余弦相似度 - 松化条件检查
+            // 计算余弦相似度（松化条件检查）
             if (similarUserId != null && ratings1 != null && ratings2 != null &&
                     !ratings1.isEmpty() && !ratings2.isEmpty()) {
                 double similarity = calculateCosineSimilarity(ratings1, ratings2);
                 similarityResults.add(new SimilarityResult(similarUserId, similarity));
             }
         }
-
-        // 按相似度降序排序，取前10个最相似用户
+        // 按相似度降序排序
         similarityResults.sort(Comparator.comparingDouble(SimilarityResult::getSimilarity).reversed());
+        result.setSimilarityResults(similarityResults);
+
+        // 步骤5：处理无相似用户场景
         List<String> similarUserIds = similarityResults.stream()
                 .limit(10)
                 .map(SimilarityResult::getUserId)
                 .collect(Collectors.toList());
-
-        // 无相似用户时返回默认热门电影
         if (CollectionUtils.isEmpty(similarUserIds)) {
             log.info("用户{}未找到相似用户，协同过滤返回默认热门电影", username);
-            return getDefaultHighRatingMovies(20);
+            result.setRecommendedMovies(getDefaultHighRatingMovies(20));
+            return result;
         }
 
+        // 步骤6：查询相似用户高分且目标用户未看过的电影
         String similarUserIdsStr = similarUserIds.stream()
-                .map(s -> "'" + s.replace("'", "\\'") + "'")  // 关键：转义单引号，防止用户名含单引号导致语法错误
+                .map(s -> "'" + s.replace("'", "\\'") + "'") // 转义单引号，避免语法错误
                 .collect(Collectors.joining(", ", "[", "]"));
-
         String ratedMovieIdsStr = ratedMovieIds.stream()
                 .map(String::valueOf)
                 .collect(Collectors.joining(", ", "[", "]"));
 
         String recommendCypher = String.format(
-                "MATCH (c:Comment) WHERE c.creator IN %s AND c.comment_rating >= %d AND NOT c.movie_id IN %s MATCH (m:Movie) WHERE m.id = c.movie_id WITH m, MAX(c.comment_rating) as maxRating ORDER BY maxRating DESC LIMIT %d RETURN m as movie",
-                similarUserIdsStr,  // 第1个%s：拼接好的用户集合
-                likedRatingThreshold, // 第1个%d：评分阈值
-                ratedMovieIdsStr,   // 第2个%s：拼接好的电影ID集合
-                20);            // 第2个%d：推荐数量
+                "MATCH (c:Comment) WHERE c.creator IN %s AND c.comment_rating >= %d AND NOT c.movie_id IN %s " +
+                        "MATCH (m:Movie) WHERE m.id = c.movie_id " +
+                        "WITH m, MAX(c.comment_rating) as maxRating " +
+                        "ORDER BY maxRating DESC LIMIT %d " +
+                        "RETURN m as movie",
+                similarUserIdsStr,   // 相似用户集合
+                likedRatingThreshold,// 评分阈值（如4分）
+                ratedMovieIdsStr,    // 目标用户已评分电影ID集合
+                20                   // 推荐数量
+        );
 
         Iterable<MovieNode> movieIterable = neo4jSession.query(MovieNode.class, recommendCypher, new HashMap<>());
-
-        List<MovieNode> result = StreamSupport.stream(movieIterable.spliterator(), false)
+        List<MovieNode> recommendedMovies = StreamSupport.stream(movieIterable.spliterator(), false)
                 .collect(Collectors.toList());
+        result.setRecommendedMovies(recommendedMovies);
+
         return result;
+    }
+
+    /**
+     * 辅助方法：根据用户名获取用户已评分的电影（含评分）
+     */
+    private List<CollaborativeFilteringResult.RatedMovieDTO> getUserRatedMoviesByUsername(String username) {
+        String cypher = String.format(
+                "MATCH (c:Comment), (m:Movie)" +
+                        "WHERE c.creator = '%s'          " +
+                        "  AND c.movie_id = m.id             " +
+                        "  AND c.comment_rating IS NOT NULL   " +
+                        "RETURN m AS movie, c.comment_rating AS rating " +
+                        "ORDER BY c.comment_rating DESC",
+                username.replace("'", "\\'")
+        );
+
+        Iterable<Map<String, Object>> result = neo4jSession.query(cypher, new HashMap<>());
+        return StreamSupport.stream(result.spliterator(), false)
+                .map(row -> {
+                    CollaborativeFilteringResult.RatedMovieDTO dto = new CollaborativeFilteringResult.RatedMovieDTO();
+                    dto.setMovie((MovieNode) row.get("movie"));
+                    Object ratingObj = row.get("rating");
+                    Integer rating = ratingObj instanceof Long ? ((Long) ratingObj).intValue() : (Integer) ratingObj;
+                    dto.setRating(rating);
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 辅助方法：提取相似用户ID（兼容多种返回字段名）
+     */
+    private String extractSimilarUserId(Map<String, Object> row) {
+        if (row.containsKey("similarUserId")) {
+            return (String) row.get("similarUserId");
+        } else if (row.containsKey("c2.creator")) {
+            return (String) row.get("c2.creator");
+        } else {
+            // 查找包含creator/user/similar的字段
+            for (Map.Entry<String, Object> entry : row.entrySet()) {
+                String key = entry.getKey().toLowerCase();
+                if (key.contains("creator") || key.contains("user") || key.contains("similar")) {
+                    return entry.getValue() != null ? entry.getValue().toString() : null;
+                }
+            }
+        }
+        return null;
     }
 
 
