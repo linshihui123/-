@@ -1,38 +1,54 @@
 package org.example.service;
 
-import org.example.model.User;
-
-import com.baomidou.mybatisplus.extension.service.IService;
+import org.example.model.UserNode;
 
 /**
  * 用户Service接口
  * 封装业务逻辑
  */
-public interface UserService extends IService<User> {
+public interface UserService {
 
     /**
-     * 新增用户（密码加密）
-     * @param user 用户信息（密码为明文）
+     * 新增用户
+     * @param user 用户信息
      * @return 新增后的用户
      */
-    User addUser(User user);
+    UserNode addUser(UserNode user);
 
     /**
      * 根据ID查询用户
      * @param userId 用户ID
      * @return 用户信息
      */
-    User getUserById(Integer userId);
+    UserNode getUserById(Long userId);
+
+    /**
+     * 根据用户名查询用户
+     * @param username 用户名
+     * @return 用户信息
+     */
+    UserNode getUserByUsername(String username);
 
     /**
      * 更新用户密码
      * @param userId 用户ID
-     * @param newPassword 新密码（明文）
+     * @param newPassword 新密码
      * @return 是否更新成功
      */
-    boolean updatePassword(Integer userId, String newPassword);
+    boolean updatePassword(Long userId, String newPassword);
+
     /**
-     * 登录用户
+     * 用户登录
+     * @param username 用户名
+     * @param password 密码
+     * @return 登录成功的用户
      */
-    User login(String username, String password);
+    UserNode login(String username, String password);
+
+    /**
+     * 检查用户名是否存在
+     * @param username 用户名
+     * @return 是否存在
+     */
+    boolean checkUsernameExists(String username);
 }

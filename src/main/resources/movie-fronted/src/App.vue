@@ -53,6 +53,14 @@
                 >
                   <i class="el-icon-s-data"></i> 知识图谱
                 </el-button>
+                <el-button
+                    type="primary"
+                    plain
+                    :class="{ 'nav-active': activeTab === 'rankings' }"
+                    @click="switchTab('rankings')"
+                >
+                  <i class="el-icon-trophy"></i> 电影榜单
+                </el-button>
               </el-button-group>
               <span class="user-welcome">欢迎，{{ currentUser.username }}</span>
 
@@ -126,6 +134,13 @@
                       <p>电影评分分布与类型统计</p>
                     </div>
                   </el-card>
+                  <el-card class="feature-card" @click.native="switchTab('rankings')">
+                    <div class="feature-content">
+                      <i class="el-icon-trophy feature-icon" style="color: #909399;"></i>
+                      <h3>电影榜单</h3>
+                      <p>多维度电影排行榜</p>
+                    </div>
+                  </el-card>
                 </div>
               </el-card>
             </el-col>
@@ -167,6 +182,15 @@
           <div class="layout-wrapper">
             <div class="main-content">
               <MovieRatingStats />
+            </div>
+          </div>
+        </div>
+        
+        <!-- 电影榜单页面 -->
+        <div v-if="activeTab === 'rankings'" class="rankings-container">
+          <div class="layout-wrapper">
+            <div class="main-content">
+              <MovieRankings />
             </div>
           </div>
         </div>
@@ -221,6 +245,7 @@ import UserAuth from './components/UserAuth.vue'
 import KnowledgeGraph from './components/KnowledgeGraph.vue'
 import CollaborativeFilteringRecommend from './components/CollaborativeFilteringRecommend.vue'
 import MovieRatingStats from './components/MovieRatingStats.vue'
+import MovieRankings from './components/MovieRankings.vue'
 // 移除推荐相关接口导入
 import { getMovieDetail } from './api/recommend'
 import axios from 'axios'
@@ -233,7 +258,8 @@ export default {
     UserAuth,
     KnowledgeGraph,
     CollaborativeFilteringRecommend,
-    MovieRatingStats
+    MovieRatingStats,
+    MovieRankings
   },
   data() {
     return {
@@ -297,7 +323,7 @@ export default {
       if (userStr && userStr !== 'undefined' && userStr !== 'null' && token) {
         try {
           this.currentUser = JSON.parse(userStr);
-          this.currentUserId = this.currentUser.userid || this.currentUser.id || this.currentUser.userId; // 尝试多个可能的字段名
+          this.currentUserId = this.currentUser.id || this.currentUser.userid || this.currentUser.userId; // 尝试多个可能的字段名
         } catch (e) {
           console.error('恢复用户会话失败', e);
           this.clearUserSession();
@@ -342,8 +368,8 @@ export default {
       }
 
       this.currentUser = user;
-      // 根据后端User实体类，使用userid字段
-      this.currentUserId = user.userid || user.id || user.userId;
+      // 根据后端UserNode实体类，使用id字段
+      this.currentUserId = user.id || user.userid || user.userId;
 
       // 确保ID存在
       if (!this.currentUserId) {

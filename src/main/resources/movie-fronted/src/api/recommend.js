@@ -47,3 +47,20 @@ export function getMovieRatingsByRegion() {
         method: 'get'
     })
 }
+
+// 获取指定电影的评论记录（根据电影名称）
+export function getMovieCommentsByMovieName(movieName) {
+    return request({
+        url: `/recommendation/movie-comments?movieName=${encodeURIComponent(movieName)}`,
+        method: 'get'
+    })
+}
+
+// 获取多维度电影榜单
+export function getMultiDimensionalRanking(params) {
+    return request({
+        url: '/recommendation/multi-dimensional-ranking',
+        method: 'get',
+        params: params
+    })
+}

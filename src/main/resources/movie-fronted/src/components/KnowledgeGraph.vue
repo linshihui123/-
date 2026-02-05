@@ -34,7 +34,30 @@
           @change="onMovieCountChange"
       ></el-input-number>
 
+      <!-- 布局算法选择 -->
+      <el-select
+          v-model="selectedLayout"
+          placeholder="选择布局算法"
+          class="layout-selector"
+          @change="changeLayout"
+      >
+        <el-option label="力导向布局" value="force"></el-option>
+        <el-option label="层次布局" value="circular"></el-option>
+        <el-option label="放射状布局" value="radial"></el-option>
+        <el-option label="网格布局" value="grid"></el-option>
+      </el-select>
+
+      <!-- 交互控制 -->
+      <div class="interaction-controls">
+        <el-checkbox v-model="enableZoom" @change="updateInteraction">启用缩放</el-checkbox>
+        <el-checkbox v-model="enableDrag" @change="updateInteraction">启用拖拽</el-checkbox>
+        <el-checkbox v-model="enableNodeFollow" @change="updateInteraction">节点跟随</el-checkbox>
+      </div>
+
       <el-button type="primary" @click="resetGraph" class="reset-btn">重置图谱</el-button>
+      <el-button type="info" @click="expandAllNodes" class="expand-btn">展开全部</el-button>
+      <el-button type="info" @click="collapseAllNodes" class="collapse-btn">收起全部</el-button>
+      <el-button type="success" @click="exportGraph" class="export-btn">导出图谱</el-button>
     </div>
 
     <!-- 图谱渲染画布：使用绝对定位占满剩余空间 -->
@@ -112,7 +135,17 @@ export default {
       nodePositions: new Map(), // 存储节点位置关系，用于跟随拖动
       isDragging: false,
       draggedNode: null,
-      dragStartPos: { x: 0, y: 0 }
+      dragStartPos: { x: 0, y: 0 },
+      // 新增：布局算法选择
+      selectedLayout: 'force', // 默认力导向布局
+      // 新增：交互控制
+      enableZoom: true,
+      enableDrag: true,
+      enableNodeFollow: true,
+      // 新增：节点展开/收起状态
+      expandedNodes: new Set(),
+      // 新增：图谱缩放级别
+      zoomLevel: 1
     }
   },
   mounted() {
@@ -182,14 +215,14 @@ export default {
 
     // 优化后的节点大小计算
     getNodeSize(name, isCore) {
-      const fontSize = isCore ? 14 : 12
-      const baseSize = isCore ? 60 : 40
-      const length = name ? name.length : 0
-
-      // 根据文本长度调整大小
-      if (length <= 4) return baseSize
-      if (length <= 8) return baseSize * 1.2
-      return baseSize * 1.5
+      if (!name) {
+        return 40
+      }
+      const nameLength = name.length
+      if (nameLength <= 2) return 40
+      if (nameLength <= 4) return 50
+      if (nameLength <= 6) return 60
+      return 70
     },
 
     // 生成图谱数据（核心改进：建立节点跟随关系）
@@ -209,21 +242,55 @@ export default {
         filteredNodes = allNodes
         filteredEdges = allEdges
       } else {
-        const targetNodes = allNodes.filter(node => node.type === this.selectedNodeType)
-        if (targetNodes.length === 0) {
-          return { nodes: [], edges: [], categories: this.getNodeCategories() }
+        // 处理类型节点筛选
+        if (this.selectedNodeType === 'genre') {
+          // 查找所有类型边
+          const genreEdges = allEdges.filter(edge => edge.label === '类型')
+          if (genreEdges.length === 0) {
+            return { nodes: [], edges: [], categories: this.getNodeCategories() }
+          }
+          
+          // 提取类型节点ID
+          const genreNodeIds = [...new Set(genreEdges.map(edge => edge.target))]
+          
+          // 查找类型节点
+          const genreNodes = allNodes.filter(node => genreNodeIds.includes(node.id))
+          if (genreNodes.length === 0) {
+            return { nodes: [], edges: [], categories: this.getNodeCategories() }
+          }
+          
+          // 查找与类型节点相关的所有边
+          const relatedEdges = allEdges.filter(edge => 
+              genreNodeIds.includes(edge.source) || genreNodeIds.includes(edge.target)
+          )
+          
+          // 查找与这些边相关的所有节点
+          const relatedNodeIds = new Set()
+          relatedEdges.forEach(edge => {
+            relatedNodeIds.add(edge.source)
+            relatedNodeIds.add(edge.target)
+          })
+          
+          filteredNodes = allNodes.filter(node => relatedNodeIds.has(node.id))
+          filteredEdges = relatedEdges
+        } else {
+          // 其他类型节点的筛选逻辑
+          const targetNodes = allNodes.filter(node => node.type === this.selectedNodeType)
+          if (targetNodes.length === 0) {
+            return { nodes: [], edges: [], categories: this.getNodeCategories() }
+          }
+          const targetNodeIds = targetNodes.map(node => node.id)
+          const relatedEdges = allEdges.filter(edge =>
+              targetNodeIds.includes(edge.source) || targetNodeIds.includes(edge.target)
+          )
+          const relatedNodeIds = new Set()
+          relatedEdges.forEach(edge => {
+            relatedNodeIds.add(edge.source)
+            relatedNodeIds.add(edge.target)
+          })
+          filteredNodes = allNodes.filter(node => relatedNodeIds.has(node.id))
+          filteredEdges = relatedEdges
         }
-        const targetNodeIds = targetNodes.map(node => node.id)
-        const relatedEdges = allEdges.filter(edge =>
-            targetNodeIds.includes(edge.source) || targetNodeIds.includes(edge.target)
-        )
-        const relatedNodeIds = new Set()
-        relatedEdges.forEach(edge => {
-          relatedNodeIds.add(edge.source)
-          relatedNodeIds.add(edge.target)
-        })
-        filteredNodes = allNodes.filter(node => relatedNodeIds.has(node.id))
-        filteredEdges = relatedEdges
       }
 
       // 关键词搜索
@@ -389,11 +456,11 @@ export default {
 
     getNodeCategories() {
       return [
-        { name: 'movie', itemStyle: { color: '#8A2BE2', borderWidth: 2, borderColor: '#4B0082', opacity: 1 } },
-        { name: 'director', itemStyle: { color: '#FF4500', borderWidth: 1, borderColor: '#FF6347', opacity: 1 } },
-        { name: 'actor', itemStyle: { color: '#FF6347', borderWidth: 1, borderColor: '#FF4500', opacity: 1 } },
-        { name: 'region', itemStyle: { color: '#FFD700', borderWidth: 1, borderColor: '#FFA500', opacity: 1 } },
-        { name: 'genre', itemStyle: { color: '#32CD32', borderWidth: 1, borderColor: '#228B22', opacity: 1 } }
+        { name: 'movie', itemStyle: { color: '#FF6B6B', borderWidth: 2, borderColor: '#FF4757', opacity: 1, shadowBlur: 0 } },
+        { name: 'director', itemStyle: { color: '#87CEEB', borderWidth: 1, borderColor: '#4682B4', opacity: 1, shadowBlur: 0 } },
+        { name: 'actor', itemStyle: { color: '#87CEEB', borderWidth: 1, borderColor: '#4682B4', opacity: 1, shadowBlur: 0 } },
+        { name: 'region', itemStyle: { color: '#87CEEB', borderWidth: 1, borderColor: '#4682B4', opacity: 1, shadowBlur: 0 } },
+        { name: 'genre', itemStyle: { color: '#87CEEB', borderWidth: 1, borderColor: '#4682B4', opacity: 1, shadowBlur: 0 } }
       ]
     },
 
@@ -407,11 +474,76 @@ export default {
       const containerWidth = this.$refs.graphCanvas.offsetWidth
       const containerHeight = this.$refs.graphCanvas.offsetHeight
 
+      // 布局配置
+      let layoutConfig = {}
+      let layoutType = 'none'
+      
+      switch (this.selectedLayout) {
+        case 'force':
+          layoutType = 'force'
+          layoutConfig = {
+            repulsion: 100,
+            edgeLength: [80, 150],
+            gravity: 0.1,
+            layoutAnimation: true
+          }
+          break
+        case 'circular':
+          layoutType = 'circular'
+          layoutConfig = {
+            rotateLabel: true
+          }
+          break
+        case 'radial':
+          layoutType = 'force'
+          layoutConfig = {
+            repulsion: 80,
+            edgeLength: [100, 200],
+            gravity: 0.15,
+            layoutAnimation: true
+          }
+          break
+        case 'grid':
+          layoutType = 'force'
+          layoutConfig = {
+            repulsion: 50,
+            edgeLength: [60, 120],
+            gravity: 0.1,
+            layoutAnimation: true
+          }
+          break
+        default:
+          layoutType = 'none'
+          layoutConfig = {}
+      }
+
       // ECharts配置
       const option = {
         backgroundColor: '#FFFFFF',
         tooltip: {
-          show: false
+          show: true,
+          formatter: function(params) {
+            if (params.dataType === 'node') {
+              const node = params.data
+              let typeText = ''
+              switch (node.type) {
+                case 'movie': typeText = '电影'; break
+                case 'director': typeText = '导演'; break
+                case 'actor': typeText = '演员'; break
+                case 'region': typeText = '地区'; break
+                case 'genre': typeText = '类型'; break
+              }
+              return `${node.name}<br/>类型: ${typeText}`
+            }
+            return ''
+          },
+          backgroundColor: 'rgba(50, 50, 50, 0.8)',
+          borderColor: '#333',
+          borderWidth: 1,
+          textStyle: {
+            color: '#fff',
+            fontSize: 12
+          }
         },
         legend: {
           show: true,
@@ -425,50 +557,87 @@ export default {
           top: 10,
           left: 'center',
           itemGap: 15,
-          textStyle: { fontSize: 12, color: '#000' },
-          icon: 'circle'
+          textStyle: { 
+            fontSize: 13, 
+            color: '#333',
+            fontWeight: '500'
+          },
+          icon: 'circle',
+          itemWidth: 12,
+          itemHeight: 12
         },
         series: [
           {
             type: 'graph',
-            layout: 'none',
-            roam: true,
-            zoom: 1,
+            layout: layoutType,
+            force: layoutType === 'force' ? layoutConfig : null,
+            circular: layoutType === 'circular' ? layoutConfig : null,
+            roam: this.enableZoom,
+            zoom: this.zoomLevel,
             center: ['50%', '50%'],
-            draggable: true,
+            draggable: this.enableDrag,
             symbol: 'circle',
-            symbolSize: 40,
-            edgeSymbol: ['circle', 'circle'],
-            edgeSymbolSize: [4, 4],
+            symbolSize: function(data) {
+              if (!data || !data.name) {
+                return 40;
+              }
+              const nameLength = data.name.length;
+              if (nameLength <= 2) return 40;
+              if (nameLength <= 4) return 50;
+              if (nameLength <= 6) return 60;
+              return 70;
+            },
+            edgeSymbol: ['none', 'none'],
+            edgeSymbolSize: [0, 0],
             cursor: 'move',
             label: {
               show: true,
               position: 'inside',
-              color: '#000',
-              fontSize: 10,
-              fontWeight: 'normal'
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 'normal',
+              overflow: 'break',
+              lineHeight: 14
             },
             edgeLabel: {
-              show: true,
-              position: 'middle',
-              fontSize: 10
+              show: false
             },
             data: graphData.nodes,
             links: graphData.edges,
             categories: graphData.categories,
             lineStyle: {
-              color: 'source',
-              width: 1.5,
-              curveness: 0.1,
-              opacity: 1  // 修改为1，去除模糊效果
+              color: '#999',
+              width: 1,
+              curveness: 0,
+              opacity: 1,
+              type: 'solid',
+              shadowColor: 'none'
             },
             emphasis: {
               focus: 'none',
               blurScope: 'none',
               lineStyle: {
-                width: 2,
-                opacity: 1
+                width: 3,
+                opacity: 1,
+                color: '#ff6b6b'
+              },
+              itemStyle: {
+                shadowBlur: 0,
+                shadowColor: 'transparent',
+                borderWidth: 2,
+                borderColor: '#fff'
+              },
+              label: {
+                fontSize: 13,
+                fontWeight: 'bold',
+                color: '#000'
               }
+            },
+            animationDuration: 1500,
+            animationEasingUpdate: 'quinticInOut',
+            scaleLimit: {
+              min: 0.3,
+              max: 3
             }
           }
         ]
@@ -499,13 +668,20 @@ export default {
       this.graphInstance.on('drag', function(params) {
         if (!_this.isDragging || params.dataType !== 'node') return
 
+        // 直接从params中获取当前节点的位置
         const currentNode = params.data
-        const dx = currentNode.x - _this.dragStartPos.x
-        const dy = currentNode.y - _this.dragStartPos.y
+        const currentX = params.event.offsetX
+        const currentY = params.event.offsetY
+        
+        // 计算偏移量
+        const dx = currentX - _this.dragStartPos.x
+        const dy = currentY - _this.dragStartPos.y
 
         // 获取当前图表的所有节点
         const graphOption = _this.graphInstance.getOption()
         const allNodes = graphOption.series[0].data
+
+        let nodesUpdated = false
 
         // 如果是电影节点被拖动，移动所有子节点
         if (currentNode.type === 'movie' && _this.coreMovieMap.has(currentNode.id)) {
@@ -517,14 +693,8 @@ export default {
             if (childNode) {
               childNode.x += dx
               childNode.y += dy
+              nodesUpdated = true
             }
-          })
-
-          // 更新图表
-          _this.graphInstance.setOption({
-            series: [{
-              data: allNodes
-            }]
           })
         }
 
@@ -561,20 +731,24 @@ export default {
           nodesToMove.forEach(node => {
             node.x += dx
             node.y += dy
+            nodesUpdated = true
           })
+        }
 
-          // 更新图表
+        // 如果有节点位置更新，则更新图表
+        if (nodesUpdated) {
+          // 使用更直接的更新方式
           _this.graphInstance.setOption({
             series: [{
               data: allNodes
             }]
-          })
+          }, true) // 强制重新渲染
         }
 
         // 更新起始位置
         _this.dragStartPos = {
-          x: currentNode.x,
-          y: currentNode.y
+          x: currentX,
+          y: currentY
         }
       })
 
@@ -598,7 +772,26 @@ export default {
 
     showNodeDetail(nodeModel) {
       if (nodeModel.category !== 0) {
-        this.$message.info(`${nodeModel.name} | ${['电影','导演','演员','地区','类型'][nodeModel.category] || '未知'}`)
+        // 处理类型节点点击
+        if (nodeModel.category === 4) {
+          // 查找属于该类型的所有电影
+          const movies = this.graphData.edges
+              .filter(edge => edge.target === nodeModel.id && edge.label === '类型')
+              .map(edge => {
+                const movieNode = this.graphData.nodes.find(n => n.id === edge.source)
+                return movieNode ? movieNode.name : null
+              })
+              .filter(Boolean)
+          
+          this.nodeDetail = {
+            ...nodeModel,
+            type: '类型',
+            movies: movies.join('、')
+          }
+          this.showDetailDialog = true
+        } else {
+          this.$message.info(`${nodeModel.name} | ${['电影','导演','演员','地区','类型'][nodeModel.category] || '未知'}`)
+        }
         return
       }
 
@@ -662,6 +855,56 @@ export default {
 
     onMovieCountChange() {
       this.fetchGraphData()
+    },
+
+    // 新增：切换布局算法
+    changeLayout() {
+      this.renderGraph()
+    },
+
+    // 新增：更新交互控制
+    updateInteraction() {
+      this.renderGraph()
+    },
+
+    // 新增：展开全部节点
+    expandAllNodes() {
+      const movieNodes = this.graphData.nodes.filter(node => node.type === 'movie')
+      movieNodes.forEach(node => {
+        if (node.id) {
+          this.expandedNodes.add(node.id)
+        }
+      })
+      this.renderGraph()
+      this.$message.success('已展开全部节点')
+    },
+
+    // 新增：收起全部节点
+    collapseAllNodes() {
+      this.expandedNodes.clear()
+      this.renderGraph()
+      this.$message.success('已收起全部节点')
+    },
+
+    // 新增：中心对齐
+    centerGraph() {
+      this.zoomLevel = 1
+      this.renderGraph()
+    },
+
+    // 新增：导出图谱
+    exportGraph() {
+      if (this.graphInstance) {
+        const url = this.graphInstance.getDataURL({
+          pixelRatio: 2,
+          backgroundColor: '#FFFFFF'
+        })
+        const link = document.createElement('a')
+        link.download = 'knowledge-graph.png'
+        link.href = url
+        link.click()
+        this.$message.success('图谱导出成功！')
+      }
     }
   }
 }
@@ -718,6 +961,46 @@ export default {
 .reset-btn:hover {
   background-color: #7B2BBE;
   border-color: #7B2BBE;
+}
+
+.layout-selector {
+  width: 180px;
+  min-width: 180px;
+}
+
+.interaction-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.interaction-controls .el-checkbox {
+  margin-right: 8px;
+}
+
+.expand-btn,
+.collapse-btn {
+  padding: 0 16px;
+}
+
+.expand-btn:hover,
+.collapse-btn:hover {
+  background-color: #E6F7FF;
+  border-color: #91D5FF;
+  color: #1890FF;
+}
+
+.export-btn {
+  background-color: #52C41A;
+  border-color: #52C41A;
+  color: white;
+  padding: 0 16px;
+}
+
+.export-btn:hover {
+  background-color: #389E0D;
+  border-color: #389E0D;
 }
 
 /* 关键改进：画布占满剩余空间 */

@@ -1,5 +1,6 @@
 package org.example.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.neo4j.ogm.annotation.GeneratedValue;
 import org.neo4j.ogm.annotation.Id;
@@ -15,21 +16,26 @@ public class CommentNode {
     @GeneratedValue
     private Long id;
     
+    @JsonProperty("rating")
     @Property(name = "comment_rating")
     private Integer rating;
     
+    @JsonProperty("content")
     @Property(name = "content")
     private String content;
     
+    @JsonProperty("creator")
     @Property(name = "creator")
     private String creator; // 评论者（用户）
     
+    @JsonProperty("commentTime")
     @Property(name = "comment_time")
-    private String TIME; // 评论时间
+    private String commentTime; // 评论时间
     
     @Property(name = "comment_add_time")
-    private String ADD_TIME; // 添加时间
+    private String addTime; // 添加时间
     
+    @JsonProperty("movieId")
     @Property(name = "movie_id")
     private Integer movieId; // 电影ID
 
@@ -37,7 +43,7 @@ public class CommentNode {
     @Relationship(type = "CREATED_BY", direction = Relationship.OUTGOING)
     private UserNode user;
 
-    // 关系：评论-针对->电影
-    @Relationship(type = "HAS_COMMENT", direction = Relationship.OUTGOING)
+    // 关系：电影-有评论->评论
+    @Relationship(type = "HAS_COMMENT", direction = Relationship.INCOMING)
     private MovieNode movie;
 }

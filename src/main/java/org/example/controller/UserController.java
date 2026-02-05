@@ -1,11 +1,9 @@
 package org.example.controller;
 
-import org.example.model.User;
+import org.example.model.UserNode;
 import org.example.response.Result;
 import org.example.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/users")  // 修改路径，去掉/api前缀，因为代理会处理
+@CrossOrigin(origins = "*") // 跨域支持
 public class UserController {
 
     @Autowired
@@ -29,9 +28,9 @@ public class UserController {
      * @return 新增后的用户
      */
     @PostMapping
-    public Result<User> addUser(@Validated @RequestBody User user) {
+    public Result<UserNode> addUser(@Validated @RequestBody UserNode user) {
         try {
-            User newUser = userService.addUser(user);
+            UserNode newUser = userService.addUser(user);
             return Result.success(newUser);
         } catch (Exception e) {
             return Result.error("用户注册失败：" + e.getMessage());
@@ -45,8 +44,8 @@ public class UserController {
      * @return 用户信息
      */
     @GetMapping("/{userId}")
-    public Result<User> getUserById(@PathVariable Integer userId) {
-        User user = userService.getUserById(userId);
+    public Result<UserNode> getUserById(@PathVariable Long userId) {
+        UserNode user = userService.getUserById(userId);
         if (user == null) {
             return Result.error("用户不存在");
         }
@@ -62,7 +61,7 @@ public class UserController {
      */
     @PutMapping("/{userId}/password")
     public Result<Boolean> updatePassword(
-            @PathVariable Integer userId,
+            @PathVariable Long userId,
             @RequestParam String newPassword) {
         boolean success = userService.updatePassword(userId, newPassword);
         return success ? Result.success(true) : Result.error("更新密码失败");
@@ -76,10 +75,10 @@ public class UserController {
      * @return 登录成功后的用户信息
      */
     @PostMapping("/login")
-    public Result<User> login(
+    public Result<UserNode> login(
             @RequestParam String username,
             @RequestParam String password) {
-        User user = userService.login(username, password);
+        UserNode user = userService.login(username, password);
         if (user == null) {
             return Result.error("用户名或密码错误");
         }
@@ -100,11 +99,8 @@ public class UserController {
         }
         
         try {
-            User existingUser = userService.getBaseMapper().selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<User>()
-                    .eq("username", username)
-            );
-            return Result.success(existingUser != null);
+            boolean exists = userService.checkUsernameExists(username);
+            return Result.success(exists);
         } catch (Exception e) {
             // 记录错误日志并返回false而不是抛出500错误
             e.printStackTrace(); // 在生产环境中应该使用合适的日志记录器

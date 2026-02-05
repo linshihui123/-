@@ -24,9 +24,6 @@ public class RecommendationController {
     private MovieRecommendationService recommendationService;
 
     /**
-     * 基于用户评分的协同过滤推荐
-     */
-    /**
      * 基于用户名的协同过滤推荐接口
      * 新增返回：用户已评分电影 + 相似用户及相似度 + 推荐电影
      * @param userId 用户名/用户ID
@@ -49,15 +46,14 @@ public class RecommendationController {
     /**
      * 基于评论文本的兴趣推荐
      */
-    //TODO:这个接口传递给AI，AI处理后返回结果
     @GetMapping("/movie-comments")
-    public Result<List<Map<String, Object>>> getAllMovieComments() {
+    public Result<List<Map<String, Object>>> getMovieCommentsByMovieName(@RequestParam String movieName) {
         try {
-            List<Map<String, Object>> movieComments = (List<Map<String, Object>>) recommendationService.getAllMovieComments();
-            return Result.success(movieComments);
+            Result<List<Map<String, Object>>> result = recommendationService.getMovieCommentsByMovieName(movieName);
+            return result;
         } catch (Exception e) {
-            log.error("获取所有电影评论失败", e);
-            return Result.error(org.example.response.ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取所有电影评论失败");
+            log.error("获取电影评论失败：movieName={}", movieName, e);
+            return Result.error(org.example.response.ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影评论失败");
         }
     }
     /**
@@ -114,4 +110,28 @@ public class RecommendationController {
      * 计算电影间的评分相似度（如电影 X 和 Y 的评分分布高度相似），结合知识图谱（同导演 / 演员）强化推荐
      * //TODO:问AI说某部电影的评分是多少，同类型的相同评分，或者同导演，演员等
      */
+    
+    /**
+     * 多维度电影榜单接口
+     * 包含：高分榜、热门评论榜、类型榜
+     * @param year 年份筛选（可选）
+     * @param type 类型筛选（可选）
+     * @param region 地区筛选（可选）
+     * @param limit 返回数量限制
+     * @return 多维度榜单数据
+     */
+    @GetMapping("/multi-dimensional-ranking")
+    public Result<Map<String, Object>> getMultiDimensionalRanking(
+            @RequestParam(required = false) String year,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String region,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        try {
+            Map<String, Object> rankingData = recommendationService.getMultiDimensionalRanking(year, type, region, limit);
+            return Result.success(rankingData);
+        } catch (Exception e) {
+            log.error("获取多维度榜单失败：year={}, type={}, region={}, limit={}", year, type, region, limit, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取多维度榜单失败");
+        }
+    }
 }

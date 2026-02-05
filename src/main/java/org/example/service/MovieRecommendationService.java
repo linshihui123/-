@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.model.*;
 import org.example.repository.MovieRepository;
 import org.example.repository.CommentRepository;
-import org.example.repository.UserMapper;
+
 import org.example.response.Result;
 import org.example.response.ResultCodeEnum;
 import org.example.response.SimilarityResult;
@@ -36,8 +36,7 @@ public class MovieRecommendationService {
     @Autowired
     private CommentRepository commentRepository;
 
-    @Autowired
-    private UserMapper userMapper;
+
 
     // 配置注入（替代硬编码）
 
@@ -254,6 +253,69 @@ public class MovieRecommendationService {
             return Result.success(results);
         } catch (Exception e) {
             log.error("获取电影评论失败：movieId={}", movieId, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影评论失败");
+        }
+    }
+
+    /**
+     * 根据电影名称获取特定电影的评论信息
+     */
+    public Result<List<Map<String, Object>>> getMovieCommentsByMovieName(String movieName) {
+        try {
+            log.info("正在查询电影名称 {} 的评论", movieName);
+
+            // 1. 先根据电影名称查询电影ID
+            String movieCypher = "MATCH (m:Movie) WHERE m.name = $movieName RETURN m.info_id AS movie_id LIMIT 1";
+            Map<String, Object> movieParams = new HashMap<>();
+            movieParams.put("movieName", movieName);
+            
+            Iterable<Map<String, Object>> movieResult = neo4jSession.query(movieCypher, movieParams);
+            
+            if (!movieResult.iterator().hasNext()) {
+                log.warn("未找到电影名称为 {} 的电影", movieName);
+                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "未找到指定电影");
+            }
+            
+            Integer movieId = ((Number) movieResult.iterator().next().get("movie_id")).intValue();
+            log.info("找到电影ID: {}", movieId);
+
+            // 2. 查询该电影的评论
+            String cypher = "MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment) " +
+                    "WHERE m.info_id = $movieId " +
+                    "RETURN " +
+                    "id(c) AS comment_id, " +
+                    "m.info_id AS movie_id, " +
+                    "m.name AS movie_name, " +
+                    "c.creator AS creator, " +
+                    "c.content AS content, " +
+                    "c.comment_rating AS comment_rating, " +
+                    "c.comment_time AS comment_time, " +
+                    "c.comment_add_time AS comment_add_time";
+
+            Map<String, Object> params = new HashMap<>();
+            params.put("movieId", movieId);
+
+            Iterable<Map<String, Object>> queryResult = neo4jSession.query(cypher, params);
+
+            List<Map<String, Object>> results = new ArrayList<>();
+            for (Map<String, Object> row : queryResult) {
+                Map<String, Object> resultRow = new HashMap<>();
+                resultRow.put("comment_id", row.get("comment_id"));
+                resultRow.put("movie_id", row.get("movie_id"));
+                resultRow.put("movie_name", row.get("movie_name"));
+                resultRow.put("creator", row.get("creator"));
+                resultRow.put("content", row.get("content"));
+                resultRow.put("comment_rating", row.get("comment_rating"));
+                resultRow.put("comment_time", row.get("comment_time"));
+                resultRow.put("comment_add_time", row.get("comment_add_time"));
+                results.add(resultRow);
+            }
+
+            log.info("查询到电影 {} 的 {} 条评论", movieName, results.size());
+
+            return Result.success(results);
+        } catch (Exception e) {
+            log.error("获取电影评论失败：movieName={}", movieName, e);
             return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影评论失败");
         }
     }
@@ -729,5 +791,199 @@ public class MovieRecommendationService {
             log.error("按地区统计电影评分发生异常", e);
             return new ArrayList<>();
         }
+    }
+    
+    /**
+     * 获取多维度电影榜单
+     * 包含：高分榜（官方评分+用户评分加权）、热门评论榜（评论数量/增长速度）、类型榜
+     * @param year 年份筛选
+     * @param type 类型筛选
+     * @param region 地区筛选
+     * @param limit 返回数量限制
+     * @return 多维度榜单数据
+     */
+    public Map<String, Object> getMultiDimensionalRanking(String year, String type, String region, Integer limit) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 构建基础查询条件
+            StringBuilder conditionBuilder = new StringBuilder();
+            Map<String, Object> params = new HashMap<>();
+            
+            if (year != null && !year.trim().isEmpty()) {
+                conditionBuilder.append(" AND m.name CONTAINS $year ");
+                params.put("year", year);
+            }
+            
+            if (type != null && !type.trim().isEmpty()) {
+                conditionBuilder.append(" AND m.type = $type ");
+                params.put("type", type);
+            }
+            
+            if (region != null && !region.trim().isEmpty()) {
+                conditionBuilder.append(" AND m.region = $region ");
+                params.put("region", region);
+            }
+            
+            String conditions = conditionBuilder.toString();
+            params.put("limit", limit);
+            
+            // 1. 高分榜：官方评分 + 用户评分加权
+            String highScoreCypher = "MATCH (m:Movie) " +
+                    "WHERE m.movie_rating IS NOT NULL " + conditions +
+                    "OPTIONAL MATCH (m)<-[:HAS_COMMENT]-(c:Comment) " +
+                    "WHERE c.comment_rating IS NOT NULL " +
+                    "WITH m, m.movie_rating as officialRating, " +
+                    "     AVG(c.comment_rating) as avgUserRating, " +
+                    "     COUNT(c) as commentCount " +
+                    "WHERE officialRating >= 6.0 " +
+                    "WITH m, officialRating, avgUserRating, commentCount, " +
+                    "     CASE WHEN avgUserRating IS NOT NULL THEN " +
+                    "         (officialRating * 0.7 + avgUserRating * 0.3) " +
+                    "     ELSE officialRating END as weightedScore " +
+                    "RETURN m as movie, officialRating, avgUserRating, commentCount, weightedScore " +
+                    "ORDER BY weightedScore DESC, commentCount DESC " +
+                    "LIMIT $limit";
+            
+            Iterable<Map<String, Object>> highScoreResult = neo4jSession.query(highScoreCypher, params);
+            List<Map<String, Object>> highScoreList = processRankingResult(highScoreResult);
+            result.put("highScoreRanking", highScoreList);
+            
+            // 2. 热门评论榜：评论数量 + 增长速度（近期评论密度）
+            String popularCommentCypher = "MATCH (m:Movie)<-[:HAS_COMMENT]-(c:Comment) " +
+                    "WHERE c.comment_rating IS NOT NULL " + conditions +
+                    "WITH m, COUNT(c) as totalComments, " +
+                    "     COLLECT([c.comment_add_time, c.comment_rating]) as commentDetails " +
+                    "WHERE totalComments >= 5 " +
+                    "UNWIND commentDetails as detail " +
+                    "WITH m, totalComments, detail[0] as commentTime, detail[1] as rating " +
+                    "WHERE commentTime IS NOT NULL " +
+                    "WITH m, totalComments, " +
+                    "     COUNT(CASE WHEN commentTime > (timestamp() - 30*24*60*60*1000) THEN 1 END) as recentComments, " +
+                    "     AVG(rating) as avgRating " +
+                    "WITH m, totalComments, recentComments, avgRating, " +
+                    "     CASE WHEN totalComments > 0 THEN " +
+                    "         toFloat(recentComments) / toFloat(totalComments) " +
+                    "     ELSE 0.0 END as growthRate " +
+                    "RETURN m as movie, totalComments, recentComments, growthRate, avgRating " +
+                    "ORDER BY totalComments DESC, growthRate DESC " +
+                    "LIMIT $limit";
+            
+            Iterable<Map<String, Object>> popularCommentResult = neo4jSession.query(popularCommentCypher, params);
+            List<Map<String, Object>> popularCommentList = processRankingResult(popularCommentResult);
+            result.put("popularCommentRanking", popularCommentList);
+            
+            // 3. 类型榜：按类型统计高分电影
+            StringBuilder typeRankingCypher = new StringBuilder();
+            typeRankingCypher.append("MATCH (m:Movie) ")
+                    .append("WHERE m.movie_rating IS NOT NULL ")
+                    .append(conditions)
+                    .append(" AND m.type IS NOT NULL ")
+                    .append("WITH m.type as movieType, m, m.movie_rating as rating ")
+                    .append("ORDER BY rating DESC ")
+                    .append("WITH movieType, COLLECT({movie: m, rating: rating})[..$limit] as movies ")
+                    .append("UNWIND movies as movieInfo ")
+                    .append("RETURN movieType, movieInfo.movie as movie, movieInfo.rating as rating ")
+                    .append("ORDER BY movieType, rating DESC");
+            
+            Iterable<Map<String, Object>> typeRankingResult = neo4jSession.query(typeRankingCypher.toString(), params);
+            List<Map<String, Object>> typeRankingList = processTypeRankingResult(typeRankingResult);
+            result.put("typeRanking", typeRankingList);
+            
+            // 添加统计信息
+            result.put("totalHighScoreMovies", highScoreList.size());
+            result.put("totalPopularCommentMovies", popularCommentList.size());
+            result.put("totalTypeCategories", getTypeCategoryCount(typeRankingList));
+            
+            log.info("多维度榜单生成完成：高分榜{}部，热门评论榜{}部，类型榜{}类", 
+                    highScoreList.size(), popularCommentList.size(), getTypeCategoryCount(typeRankingList));
+            
+        } catch (Exception e) {
+            log.error("生成多维度榜单失败", e);
+            throw new RuntimeException("生成多维度榜单失败", e);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 处理榜单查询结果
+     */
+    private List<Map<String, Object>> processRankingResult(Iterable<Map<String, Object>> queryResult) {
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (Map<String, Object> row : queryResult) {
+            Map<String, Object> processedRow = new HashMap<>();
+            
+            // 处理电影节点信息
+            MovieNode movie = (MovieNode) row.get("movie");
+            if (movie != null) {
+                Map<String, Object> movieInfo = new HashMap<>();
+                movieInfo.put("id", movie.getId());
+                movieInfo.put("name", movie.getMovieName());
+                movieInfo.put("type", movie.getType());
+                movieInfo.put("region", movie.getRegion());
+                movieInfo.put("movieRating", movie.getMovieRating());
+                movieInfo.put("instruction", movie.getInstruction());
+                movieInfo.put("directors", movie.getDirectorList());
+                movieInfo.put("actors", movie.getActorList());
+                processedRow.put("movie", movieInfo);
+            }
+            
+            // 处理评分和统计数据
+            processedRow.put("officialRating", row.get("officialRating"));
+            processedRow.put("avgUserRating", row.get("avgUserRating"));
+            processedRow.put("commentCount", row.get("commentCount"));
+            processedRow.put("weightedScore", row.get("weightedScore"));
+            processedRow.put("totalComments", row.get("totalComments"));
+            processedRow.put("recentComments", row.get("recentComments"));
+            processedRow.put("growthRate", row.get("growthRate"));
+            processedRow.put("avgRating", row.get("avgRating"));
+            
+            results.add(processedRow);
+        }
+        return results;
+    }
+    
+    /**
+     * 处理类型榜单结果
+     */
+    private List<Map<String, Object>> processTypeRankingResult(Iterable<Map<String, Object>> queryResult) {
+        Map<String, List<Map<String, Object>>> typeGroups = new LinkedHashMap<>();
+        
+        for (Map<String, Object> row : queryResult) {
+            String movieType = (String) row.get("movieType");
+            MovieNode movie = (MovieNode) row.get("movie");
+            Double rating = (Double) row.get("rating");
+            
+            if (movieType != null && movie != null) {
+                typeGroups.computeIfAbsent(movieType, k -> new ArrayList<>());
+                
+                Map<String, Object> movieInfo = new HashMap<>();
+                movieInfo.put("id", movie.getId());
+                movieInfo.put("name", movie.getMovieName());
+                movieInfo.put("rating", rating);
+                movieInfo.put("region", movie.getRegion());
+                
+                typeGroups.get(movieType).add(movieInfo);
+            }
+        }
+        
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map.Entry<String, List<Map<String, Object>>> entry : typeGroups.entrySet()) {
+            Map<String, Object> typeEntry = new HashMap<>();
+            typeEntry.put("type", entry.getKey());
+            typeEntry.put("movies", entry.getValue());
+            typeEntry.put("count", entry.getValue().size());
+            result.add(typeEntry);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 获取类型分类数量
+     */
+    private int getTypeCategoryCount(List<Map<String, Object>> typeRankingList) {
+        return typeRankingList.size();
     }
 }

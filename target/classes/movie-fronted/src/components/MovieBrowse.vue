@@ -179,7 +179,7 @@
                 <div class="rating-wrapper">
                   <el-rate
                       v-model="userRating"
-                      max="5"
+                      :max="5"
                       :colors="['#F7BA2A', '#F7BA2A', '#FF9900']"
                       :void-color="'#C6D1DE'"
                       @change="handleRatingChange"
@@ -205,7 +205,7 @@
                     type="primary"
                     @click="submitComment"
                     :loading="commentSubmitting"
-                    :disabled="!userRating || !userCommentContent.trim()"
+                    :disabled="(userRating === undefined || userRating === null) || !userCommentContent.trim()"
                     icon="el-icon-check"
                     class="submit-btn"
                 >
@@ -289,7 +289,7 @@ export default {
       currentUser: null,
       isShowingCommentsOnly: false,
       // 新增：评论提交相关数据
-      userRating: 0, // 用户评分（0-5）
+      userRating: undefined, // 用户评分（1-5）
       userCommentContent: '', // 用户评论内容
       commentSubmitting: false // 评论提交加载状态
     }
@@ -452,8 +452,8 @@ export default {
           this.movies = response.data.map(movie => {
             return {
               ...movie,
-              id: movie.id || 0,
-              movieId: movie.movieId || null,
+              id: movie.id || movie.info_id || null,
+              movieId: movie.movieId || movie.info_id || null,
               movieName: movie.movieName || movie.name || '未知电影',
               type: movie.type || '未知',
               direction: movie.direction || movie.region || '未知',
@@ -677,18 +677,31 @@ export default {
       try {
         const movieId = movie.movieId || movie.info_id || movie.id;
         console.log('请求的电影ID:', movieId);
+        
+        // 处理 movieId 为无效值的情况
+        if (!movieId || movieId === null || movieId === undefined || movieId === '' || movieId === 'null' || movieId === 'undefined') {
+          this.comments = [];
+          this.$nextTick(() => {
+            this.commentDialogVisible = true;
+            this.$forceUpdate();
+            console.log('评论弹窗已打开，评论数量: 0');
+          });
+          this.$message.warning('电影ID不存在，无法获取评论');
+          return;
+        }
+        
         const response = await request.get(`/movie/movie-comments/${movieId}`);
         console.log('API响应:', response);
         if (response && response.code === 200 && response.data) {
           const processedComments = response.data.map(item => {
             return {
-              comment_id: item['comment_id'] !== undefined && item['comment_id'] !== null ? item['comment_id'] : '未知',
-              movie_id: item['movie_id'] !== undefined && item['movie_id'] !== null ? item['movie_id'] : '未知',
-              creator: item['creator'] !== undefined && item['creator'] !== null ? item['creator'] : '匿名用户',
-              content: item['content'] !== undefined && item['content'] !== null ? item['content'] : '暂无评论内容',
-              comment_rating: item['comment_rating'] !== undefined && item['comment_rating'] !== null ? item['comment_rating'] : '暂无评分',
-              comment_time: item['comment_time'] !== undefined && item['comment_time'] !== null ? item['comment_time'] : '未知',
-              comment_add_time: item['comment_add_time'] !== undefined && item['comment_add_time'] !== null ? item['comment_add_time'] : '未知'
+              comment_id: item['id'] || item['comment_id'] || '未知',
+              movie_id: item['movieId'] || item['movie_id'] || '未知',
+              creator: item['creator'] || '匿名用户',
+              content: item['content'] || '暂无评论内容',
+              comment_rating: item['rating'] || item['comment_rating'] || '暂无评分',
+              comment_time: item['commentTime'] || item['comment_time'] || '未知',
+              comment_add_time: item['addTime'] || item['comment_add_time'] || '未知'
             };
           });
           console.log('处理后的评论数据:', processedComments);
@@ -735,7 +748,7 @@ export default {
 
     // 重置评论表单
     resetCommentForm() {
-      this.userRating = 0;
+      this.userRating = undefined;
       this.userCommentContent = '';
     },
 
@@ -750,7 +763,7 @@ export default {
         this.$message.warning('请先登录');
         return;
       }
-      if (!this.userRating || !this.userCommentContent.trim()) {
+      if (this.userRating === undefined || this.userRating === null || !this.userCommentContent.trim()) {
         this.$message.warning('请完成评分和评论内容填写');
         return;
       }
@@ -758,13 +771,27 @@ export default {
       this.commentSubmitting = true;
       try {
         // 组装提交参数
+        const movieId = this.currentMovie.movieId || this.currentMovie.info_id || this.currentMovie.id;
+        // 格式化时间为 yyyy-MM-dd HH:mm:ss
+        const formatDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const seconds = String(date.getSeconds()).padStart(2, '0');
+          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        };
         const submitData = {
-          movieId: this.currentMovie.movieId || this.currentMovie.id, // 电影ID
-          userId: this.currentUser.userid || this.currentUser.id, // 用户ID
+          movieId: movieId, // 电影ID
+          creator: this.currentUser.userid || this.currentUser.id || this.currentUser.userId || '匿名用户', // 用户ID
           rating: this.userRating, // 评分
           content: this.userCommentContent.trim(), // 评论内容
-          commentTime: new Date().toISOString() // 评论时间（可根据后端要求调整格式）
+          commentTime: formatDate(new Date()) // 评论时间（与后端格式一致）
         };
+        
+        console.log('提交评论数据:', submitData);
+        console.log('电影信息:', this.currentMovie);
 
         // 调用后端提交评论接口（需根据实际接口调整URL和请求方式）
         const response = await request.post('/movie/comment/submit', submitData);

@@ -1,4 +1,4 @@
-package org.example.dify;
+package org.example.ai;
 
 import org.example.model.RecommendIntent;
 import org.springframework.beans.factory.annotation.Value;

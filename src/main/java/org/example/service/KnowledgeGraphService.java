@@ -120,6 +120,30 @@ public class KnowledgeGraphService {
                 regionEdge.put("label", "地区");
                 edgeSet.add(regionEdge);
             }
+
+            // 5. 构建类型节点 + 电影→类型的边
+            String type = movie.getType();
+            if (type != null && !type.isEmpty()) {
+                String genreNodeId = "genre_" + Math.abs(type.hashCode());
+                Map<String, Object> genreNode = new HashMap<>();
+                genreNode.put("id", genreNodeId);
+                genreNode.put("name", type); // 类型：喜剧
+                genreNode.put("type", "genre");
+                genreNode.put("x", 100 + new Random().nextInt(800));
+                genreNode.put("y", 500 + new Random().nextInt(400));
+                
+                // 只有当ID不重复时才添加
+                if (!nodeMap.containsKey(genreNodeId)) {
+                    nodeMap.put(genreNodeId, genreNode);
+                }
+
+                // 电影→类型的边
+                Map<String, Object> genreEdge = new HashMap<>();
+                genreEdge.put("source", movieNodeId);
+                genreEdge.put("target", genreNodeId);
+                genreEdge.put("label", "类型");
+                edgeSet.add(genreEdge);
+            }
         }
 
         // 组装返回数据（前端需要nodes和edges）

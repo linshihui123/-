@@ -1,74 +1,97 @@
 package org.example.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import org.example.model.User;
-import org.example.repository.UserMapper;
+import org.example.model.UserNode;
+import org.example.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.util.Assert;
+
+import java.util.Optional;
 
 /**
  * 用户服务实现
  */
 @Service
-public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UserRepository userRepository;
 
     /**
      * 新增用户：直接保存密码（不加密）
      */
     @Override
-    public User addUser(User user) {
+    public UserNode addUser(UserNode user) {
         // 参数校验：密码不能为空
         Assert.hasText(user.getPassword(), "密码不能为空");
         // 检查用户名是否已存在
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", user.getUsername()); // 使用数据库实际字段名
-        User existingUser = this.getBaseMapper().selectOne(queryWrapper);
-        if (existingUser != null) {
+        Optional<UserNode> existingUser = userRepository.findByUsername(user.getUsername());
+        if (existingUser.isPresent()) {
             throw new RuntimeException("用户名已存在");
         }
         // 直接保存用户信息（不加密密码）
-        this.save(user);
-        return user;
+        return userRepository.save(user);
     }
 
     /**
      * 根据ID查询用户
      */
     @Override
-    public User getUserById(Integer userId) {
-        return this.getById(userId);
+    public UserNode getUserById(Long userId) {
+        return userRepository.findById(userId).orElse(null);
+    }
+
+    /**
+     * 根据用户名查询用户
+     */
+    @Override
+    public UserNode getUserByUsername(String username) {
+        return userRepository.findByUsername(username).orElse(null);
     }
 
     /**
      * 更新密码：直接更新
      */
     @Override
-    public boolean updatePassword(Integer userId, String newPassword) {
+    public boolean updatePassword(Long userId, String newPassword) {
         // 参数校验
         Assert.notNull(userId, "用户ID不能为空");
         Assert.hasText(newPassword, "新密码不能为空");
         // 查询用户是否存在
-        User user = this.getById(userId);
-        if (user == null) {
+        Optional<UserNode> userOptional = userRepository.findById(userId);
+        if (!userOptional.isPresent()) {
             return false;
         }
         // 直接更新密码（不加密）
+        UserNode user = userOptional.get();
         user.setPassword(newPassword);
-        return this.updateById(user);
+        userRepository.save(user);
+        return true;
     }
 
+    /**
+     * 用户登录
+     */
     @Override
-    public User login(String username, String password) {
+    public UserNode login(String username, String password) {
         // 查询用户
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", username); // 使用数据库实际字段名
-        User user = this.getBaseMapper().selectOne(queryWrapper);
+        Optional<UserNode> userOptional = userRepository.findByUsername(username);
         
         // 直接比较密码（不使用加密验证）
-        if (user != null && password.equals(user.getPassword())) {
-            return user;
+        if (userOptional.isPresent()) {
+            UserNode user = userOptional.get();
+            if (password.equals(user.getPassword())) {
+                return user;
+            }
         }
         return null;
+    }
+
+    /**
+     * 检查用户名是否存在
+     */
+    @Override
+    public boolean checkUsernameExists(String username) {
+        return userRepository.findByUsername(username).isPresent();
     }
 }
