@@ -5,6 +5,7 @@ D:\ideaProject\demo\src\main\java\org\example\model\UserNode.java
 D:\ideaProject\demo\src\main\java\org\example\model\MovieCommentDTO.java
 D:\ideaProject\demo\src\main\java\org\example\service\KnowledgeGraphService.java
 D:\ideaProject\demo\src\main\java\org\example\controller\DifyController.java
+D:\ideaProject\demo\src\main\java\org\example\model\LikeRel.java
 D:\ideaProject\demo\src\main\java\org\example\service\UserServiceImpl.java
 D:\ideaProject\demo\src\main\java\org\example\ai\DifyIntegrationService.java
 D:\ideaProject\demo\src\main\java\org\example\repository\CommentRepository.java
@@ -21,15 +22,15 @@ D:\ideaProject\demo\src\main\java\org\example\service\CommentService.java
 D:\ideaProject\demo\src\main\java\org\example\controller\UserController.java
 D:\ideaProject\demo\src\main\java\org\example\model\MovieRatingRel.java
 D:\ideaProject\demo\src\main\java\org\example\repository\UserRepository.java
+D:\ideaProject\demo\src\main\java\org\example\controller\LikeController.java
 D:\ideaProject\demo\src\main\java\org\example\ai\FlowRequest.java
 D:\ideaProject\demo\src\main\java\org\example\service\MovieRecommendationService.java
-D:\ideaProject\demo\src\main\java\org\example\repository\UserMapper.java
 D:\ideaProject\demo\src\main\java\org\example\controller\CommentController.java
 D:\ideaProject\demo\src\main\java\org\example\controller\RecommendationController.java
 D:\ideaProject\demo\src\main\java\org\example\model\RecommendIntent.java
 D:\ideaProject\demo\src\main\java\org\example\model\MovieNode.java
+D:\ideaProject\demo\src\main\java\org\example\service\LikeService.java
 D:\ideaProject\demo\src\main\java\org\example\ai\FlowResponse.java
 D:\ideaProject\demo\src\main\java\org\example\response\Result.java
 D:\ideaProject\demo\src\main\java\org\example\controller\KnowledgeGraphController.java
 D:\ideaProject\demo\src\main\java\org\example\model\ActorNode.java
-D:\ideaProject\demo\src\main\java\org\example\model\User.java

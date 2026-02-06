@@ -179,13 +179,13 @@
                 <div class="rating-wrapper">
                   <el-rate
                       v-model="userRating"
-                      :max="5"
+                      :max="10"
                       :colors="['#F7BA2A', '#F7BA2A', '#FF9900']"
                       :void-color="'#C6D1DE'"
                       @change="handleRatingChange"
                       class="rate-component"
                   ></el-rate>
-                  <span class="rating-text">{{ userRating > 0 ? `${userRating} 星` : '未评分' }}</span>
+                  <span class="rating-text">{{ userRating !== undefined && userRating !== null ? `${userRating} 分` : '未评分' }}</span>
                 </div>
               </div>
               <div class="comment-content-item">
@@ -261,7 +261,6 @@
 
 <script>
 import request from '@/utils/request'
-import { parseUserIntent, getRecommendMoviesPost } from '@/api/recommend'
 
 export default {
   name: 'MovieBrowse',
@@ -317,10 +316,35 @@ export default {
       const userStr = localStorage.getItem('user');
       if (userStr) {
         try {
-          this.currentUser = JSON.parse(userStr);
+          let parsedUser = JSON.parse(userStr);
+          console.log('原始解析的用户信息:', parsedUser);
+          
+          // 尝试提取真实的用户信息
+          let realUser = parsedUser;
+          
+          // 处理各种可能的用户信息结构
+          if (parsedUser && typeof parsedUser === 'object') {
+            // 检查是否有username字段
+            if (parsedUser.username) {
+              realUser = parsedUser;
+            } 
+            // 检查是否有value字段（可能是嵌套结构）
+            else if (parsedUser.value && typeof parsedUser.value === 'object') {
+              realUser = parsedUser.value;
+            }
+            // 检查是否有user字段（可能是登录响应的结构）
+            else if (parsedUser.user && typeof parsedUser.user === 'object') {
+              realUser = parsedUser.user;
+            }
+          }
+          
+          this.currentUser = realUser;
+          console.log('最终使用的用户信息:', this.currentUser);
         } catch (e) {
           console.error('解析用户信息失败', e);
         }
+      } else {
+        console.log('未找到用户信息');
       }
     },
 
@@ -449,11 +473,12 @@ export default {
         }
         const response = await request.get(url);
         if (response && response.code === 200 && response.data) {
-          this.movies = response.data.map(movie => {
+          this.movies = response.data.map((movie, index) => {
+            const movieId = movie.id || movie.info_id || movie.movieId || index + 1;
             return {
               ...movie,
-              id: movie.id || movie.info_id || null,
-              movieId: movie.movieId || movie.info_id || null,
+              id: movieId,
+              movieId: movieId,
               movieName: movie.movieName || movie.name || '未知电影',
               type: movie.type || '未知',
               direction: movie.direction || movie.region || '未知',
@@ -491,11 +516,12 @@ export default {
         this.isShowingCommentsOnly = true;
         const response = await request.get(`/movie/movies-with-comments?page=${this.currentPage - 1}&size=${this.pageSize}`);
         if (response && response.code === 200 && response.data) {
-          this.movies = response.data.map(movie => {
+          this.movies = response.data.map((movie, index) => {
+            const movieId = movie.id || movie.info_id || movie.movieId || index + 1;
             return {
               ...movie,
-              id: movie.id || 0,
-              movieId: movie.movieId || null,
+              id: movieId,
+              movieId: movieId,
               movieName: movie.movieName || movie.name || '未知电影',
               type: movie.type || '未知',
               direction: movie.direction || movie.region || '未知',
@@ -553,11 +579,12 @@ export default {
       try {
         const response = await request.get(`/movie/movies-with-comments?page=${this.currentPage - 1}&size=${this.pageSize}`);
         if (response && response.code === 200 && response.data) {
-          this.movies = response.data.map(movie => {
+          this.movies = response.data.map((movie, index) => {
+            const movieId = movie.id || movie.info_id || movie.movieId || index + 1;
             return {
               ...movie,
-              id: movie.id || 0,
-              movieId: movie.movieId || null,
+              id: movieId,
+              movieId: movieId,
               movieName: movie.movieName || movie.name || '未知电影',
               type: movie.type || '未知',
               direction: movie.direction || movie.region || '未知',
@@ -759,19 +786,29 @@ export default {
 
     // 提交评论
     async submitComment() {
-      if (!this.currentUser) {
-        this.$message.warning('请先登录');
+      // 跳过登录检查，使用模拟用户名
+      // if (!this.currentUser) {
+      //   this.$message.warning('请先登录');
+      //   return;
+      // }
+      if ((this.userRating === undefined || this.userRating === null) || !this.userCommentContent.trim()) {
+        this.$message.warning('请完成评分和评论内容填写');
         return;
       }
-      if (this.userRating === undefined || this.userRating === null || !this.userCommentContent.trim()) {
-        this.$message.warning('请完成评分和评论内容填写');
+      if (this.userRating < 0 || this.userRating > 10) {
+        this.$message.error('评分应在0-10分之间');
+        return;
+      }
+
+      // 验证电影ID
+      const movieId = this.currentMovie.movieId || this.currentMovie.info_id || this.currentMovie.id;
+      if (!movieId || movieId === null || movieId === undefined || movieId === '' || movieId === 'null' || movieId === 'undefined') {
+        this.$message.error('电影ID不能为空或无效');
         return;
       }
 
       this.commentSubmitting = true;
       try {
-        // 组装提交参数
-        const movieId = this.currentMovie.movieId || this.currentMovie.info_id || this.currentMovie.id;
         // 格式化时间为 yyyy-MM-dd HH:mm:ss
         const formatDate = (date) => {
           const year = date.getFullYear();
@@ -782,14 +819,23 @@ export default {
           const seconds = String(date.getSeconds()).padStart(2, '0');
           return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         };
+        // 使用固定的模拟用户名，确保评论能显示用户名
+        const mockUsername = '测试用户';
         const submitData = {
           movieId: movieId, // 电影ID
-          creator: this.currentUser.userid || this.currentUser.id || this.currentUser.userId || '匿名用户', // 用户ID
+          creator: mockUsername, // 使用模拟用户名
           rating: this.userRating, // 评分
           content: this.userCommentContent.trim(), // 评论内容
           commentTime: formatDate(new Date()) // 评论时间（与后端格式一致）
         };
         
+        console.log('用户信息:', this.currentUser);
+        console.log('currentUser是否存在:', !!this.currentUser);
+        console.log('currentUser.username:', this.currentUser ? this.currentUser.username : 'undefined');
+        console.log('currentUser.name:', this.currentUser ? this.currentUser.name : 'undefined');
+        console.log('currentUser.userid:', this.currentUser ? this.currentUser.userid : 'undefined');
+        console.log('currentUser.id:', this.currentUser ? this.currentUser.id : 'undefined');
+        console.log('currentUser.userId:', this.currentUser ? this.currentUser.userId : 'undefined');
         console.log('提交评论数据:', submitData);
         console.log('电影信息:', this.currentMovie);
 

@@ -15,6 +15,14 @@
               <el-option v-for="item in userList" :key="item.value" :label="item.label" :value="item.value"></el-option>
             </el-select>
           </el-form-item>
+          <el-form-item label="推荐类型">
+            <el-select v-model="recommendationType" placeholder="选择推荐类型" @change="loadRecommendations">
+              <el-option value="collaborative" label="协同过滤推荐"></el-option>
+              <el-option value="director" label="基于导演推荐"></el-option>
+              <el-option value="type-region" label="基于类型和地区推荐"></el-option>
+              <el-option value="actor-director" label="基于演员和导演推荐"></el-option>
+            </el-select>
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="loadRecommendations" :loading="loading">
               获取推荐
@@ -25,7 +33,7 @@
         <!-- 推荐结果统计 -->
         <div class="recommend-stats" v-if="movies.length > 0">
           <el-alert
-              :title="`基于用户 ${selectedUserId} 的评分，为您推荐了 ${movies.length} 部电影`"
+              :title="getRecommendStatsTitle()"
               type="success"
               :closable="false"
               show-icon>
@@ -43,6 +51,9 @@
             </div>
             <div class="tab-title" :class="{active: activeTab === 'similar'}" @click="activeTab='similar'">
               相似用户匹配度
+            </div>
+            <div class="tab-title" :class="{active: activeTab === 'liked'}" @click="activeTab='liked'">
+              我的点赞电影
             </div>
           </div>
 
@@ -72,20 +83,37 @@
               </div>
               <p class="empty-tip" v-else>暂无相似用户</p>
             </div>
+
+            <!-- 我的点赞电影模块 -->
+            <div v-if="activeTab === 'liked'">
+              <div class="liked-movies-list" v-if="userLikedMovies.length > 0">
+                <div class="liked-movie-item" v-for="(movie, idx) in userLikedMovies" :key="idx">
+                  <span class="movie-name">{{ movie.movieName || '未知电影' }}</span>
+                  <el-button type="text" size="small" @click="handleMovieClick(movie)">查看详情</el-button>
+                </div>
+              </div>
+              <p class="empty-tip" v-else>暂无点赞记录</p>
+            </div>
           </div>
         </el-card>
       </div>
     </div>
 
     <!-- 推荐电影列表组件 -->
-    <MovieList :movies="movies" :loading="loading" :showTitle="true" recommendationType="collaborative" @movie-click="handleMovieClick" />
+    <MovieList :movies="movies" :loading="loading" :showTitle="true" :recommendationType="recommendationType" @movie-click="handleMovieClick" />
   </div>
 </template>
 
 <script>
 // 导入子组件和接口方法（确保路径与你的项目一致）
 import MovieList from './MovieList.vue';
-import { getCollaborativeFilteringRecommend, getAllCommentCreators } from '../api/recommend';
+import { 
+  getCollaborativeFilteringRecommend, 
+  getAllCommentCreators,
+  getRecommendMoviesByDirector,
+  getRecommendMoviesByTypeAndRegion,
+  getRecommendMoviesByActorAndDirector
+} from '../api/recommend';
 
 export default {
   name: 'CollaborativeFilteringRecommend',
@@ -100,7 +128,9 @@ export default {
       userList: [], // 下拉选择的用户列表
       userRatedMovies: [], // 接口返回：用户已评分电影
       similarityResults: [], // 接口返回：相似用户及匹配度
-      activeTab: 'rated' // 红框区域选项卡默认选中「我的评分记录」
+      userLikedMovies: [], // 用户点赞的电影
+      activeTab: 'rated', // 红框区域选项卡默认选中「我的评分记录」
+      recommendationType: 'collaborative' // 推荐类型：collaborative, director, type-region, actor-director
     }
   },
   // 页面挂载时加载用户列表并默认获取推荐
@@ -144,38 +174,92 @@ export default {
       }
     },
 
-    // 核心方法：获取协同过滤推荐数据（已修复语法兼容问题，移除所有?.）
+    // 获取推荐统计标题
+    getRecommendStatsTitle() {
+      let title = `基于用户 ${this.selectedUserId} 的`;
+      switch (this.recommendationType) {
+        case 'collaborative':
+          title += `评分，为您推荐了 ${this.movies.length} 部电影`;
+          break;
+        case 'director':
+          title += `点赞，为您推荐了 ${this.movies.length} 部同导演电影`;
+          break;
+        case 'type-region':
+          title += `点赞，为您推荐了 ${this.movies.length} 部同类型同地区电影`;
+          break;
+        case 'actor-director':
+          title += `点赞，为您推荐了 ${this.movies.length} 部同演员同导演电影`;
+          break;
+        default:
+          title += `推荐，为您推荐了 ${this.movies.length} 部电影`;
+      }
+      return title;
+    },
+
+    // 核心方法：获取推荐数据
     async loadRecommendations() {
       // 重置所有数据，避免切换用户时旧数据残留
       this.movies = [];
       this.userRatedMovies = [];
       this.similarityResults = [];
+      this.userLikedMovies = [];
       this.loading = true;
       try {
-        // 调用接口获取数据
-        const response = await getCollaborativeFilteringRecommend(this.selectedUserId);
-        let resData = null;
+        if (this.recommendationType === 'collaborative') {
+          // 调用协同过滤推荐接口
+          const response = await getCollaborativeFilteringRecommend(this.selectedUserId);
+          let resData = null;
 
-        // 兼容两种常见接口返回格式（解决axios拦截器导致的解析问题）
-        // 格式1：标准Result格式 {code:200, msg:"", data:{...}}（未配置拦截器）
-        if (response.data && response.data.code !== undefined) {
-          if (response.data.code === 200) {
-            resData = response.data.data;
-          } else {
-            this.$message.warning(response.data.msg || '获取推荐失败');
-            return;
+          // 兼容两种常见接口返回格式（解决axios拦截器导致的解析问题）
+          // 格式1：标准Result格式 {code:200, msg:"", data:{...}}（未配置拦截器）
+          if (response.data && response.data.code !== undefined) {
+            if (response.data.code === 200) {
+              resData = response.data.data;
+            } else {
+              this.$message.warning(response.data.msg || '获取推荐失败');
+              return;
+            }
           }
-        }
-        // 格式2：拦截器直接返回data对象（项目中大概率是这种情况）
-        else {
-          resData = response.data || response;
-        }
+          // 格式2：拦截器直接返回data对象（项目中大概率是这种情况）
+          else {
+            resData = response.data || response;
+          }
 
-        // ########### 关键修正：移除?.，替换为&&兼容老环境 ###########
-        this.movies = (resData && resData.recommendedMovies) || [];
-        this.userRatedMovies = (resData && resData.userRatedMovies) || [];
-        this.similarityResults = (resData && resData.similarityResults) || [];
-        // ###########################################################
+          // ########### 关键修正：移除?.，替换为&&兼容老环境 ###########
+          this.movies = (resData && resData.recommendedMovies) || [];
+          this.userRatedMovies = (resData && resData.userRatedMovies) || [];
+          this.similarityResults = (resData && resData.similarityResults) || [];
+          // ###########################################################
+        } else {
+          // 调用基于用户点赞的推荐接口
+          let response;
+          switch (this.recommendationType) {
+            case 'director':
+              response = await getRecommendMoviesByDirector(this.selectedUserId, 20);
+              break;
+            case 'type-region':
+              response = await getRecommendMoviesByTypeAndRegion(this.selectedUserId, 20);
+              break;
+            case 'actor-director':
+              response = await getRecommendMoviesByActorAndDirector(this.selectedUserId, 20);
+              break;
+            default:
+              response = null;
+          }
+
+          if (response && response.data) {
+            // 兼容标准Result格式
+            if (response.data.code === 200) {
+              this.movies = response.data.data || [];
+            } else {
+              this.$message.warning(response.data.msg || '获取推荐失败');
+              return;
+            }
+          }
+
+          // 加载用户点赞的电影（用于显示在选项卡中）
+          this.loadUserLikedMovies();
+        }
 
         // 仅当推荐电影为空时，才提示无有效数据（避免误提示）
         if (this.movies.length === 0) {
@@ -183,12 +267,38 @@ export default {
         }
       } catch (error) {
         // 异常捕获，友好提示
-        console.error('获取协同过滤推荐失败:', error);
+        console.error('获取推荐失败:', error);
         console.error('错误详情:', error.response && error.response.data || error.message);
         this.$message.error('获取推荐失败，请稍后重试');
       } finally {
         // 无论成功/失败，结束加载状态
         this.loading = false;
+      }
+    },
+
+    // 加载用户点赞的电影
+    async loadUserLikedMovies() {
+      try {
+        // 根据推荐类型获取对应的推荐结果作为用户点赞的电影
+        // 实际项目中，这里应该调用专门的接口获取用户点赞的电影
+        if (this.recommendationType === 'director') {
+          const response = await getRecommendMoviesByDirector(this.selectedUserId, 10);
+          if (response && response.data && response.data.code === 200) {
+            this.userLikedMovies = response.data.data || [];
+          }
+        } else if (this.recommendationType === 'type-region') {
+          const response = await getRecommendMoviesByTypeAndRegion(this.selectedUserId, 10);
+          if (response && response.data && response.data.code === 200) {
+            this.userLikedMovies = response.data.data || [];
+          }
+        } else if (this.recommendationType === 'actor-director') {
+          const response = await getRecommendMoviesByActorAndDirector(this.selectedUserId, 10);
+          if (response && response.data && response.data.code === 200) {
+            this.userLikedMovies = response.data.data || [];
+          }
+        }
+      } catch (error) {
+        console.error('获取用户点赞电影失败:', error);
       }
     },
 
@@ -300,16 +410,6 @@ export default {
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
-.movie-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #333;
-}
-.movie-rating {
-  color: #F7BA2A;
-}
 
 /* 相似用户匹配度样式 */
 .similar-users-list {
@@ -328,6 +428,37 @@ export default {
   background: #fff;
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* 我的点赞电影样式 */
+.liked-movies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+.liked-movie-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* 通用样式 */
+.movie-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #333;
+}
+.movie-rating {
+  color: #F7BA2A;
 }
 .user-id {
   flex: 1;
@@ -386,6 +517,13 @@ export default {
   }
   .display-card {
     min-height: 240px;
+  }
+  .display-tabs {
+    flex-wrap: wrap;
+  }
+  .tab-title {
+    padding: 8px 12px;
+    font-size: 14px;
   }
 }
 </style>

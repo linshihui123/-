@@ -218,38 +218,164 @@ public class MovieRecommendationService {
         try {
             log.info("正在查询电影ID {} 的评论", movieId);
 
-            // 1. 先查询通过关系连接的评论
-            String cypher = "MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment) " +
-                    "WHERE m.info_id = $movieId " +
-                    "RETURN " +
-                    "id(c) AS comment_id, " +
-                    "m.info_id AS movie_id, " +
-                    "c.creator AS creator, " +
-                    "c.content AS content, " +
-                    "c.comment_rating AS comment_rating, " +
-                    "c.comment_time AS comment_time, " +
-                    "c.comment_add_time AS comment_add_time";
-
+            List<Map<String, Object>> results = new ArrayList<>();
             Map<String, Object> params = new HashMap<>();
             params.put("movieId", movieId);
 
-            Iterable<Map<String, Object>> queryResult = neo4jSession.query(cypher, params);
+            // 1. 先查询通过关系连接的评论
+            try {
+                String cypher = "MATCH (m:Movie)-[:HAS_COMMENT]->(c:Comment) " +
+                        "WHERE m.info_id = $movieId " +
+                        "RETURN " +
+                        "id(c) AS comment_id, " +
+                        "m.info_id AS movie_id, " +
+                        "c.creator AS creator, " +
+                        "c.content AS content, " +
+                        "c.comment_rating AS comment_rating, " +
+                        "c.comment_time AS comment_time, " +
+                        "c.comment_add_time AS comment_add_time";
 
-            List<Map<String, Object>> results = new ArrayList<>();
-            for (Map<String, Object> row : queryResult) {
-                Map<String, Object> resultRow = new HashMap<>();
-                resultRow.put("comment_id", row.get("comment_id"));
-                resultRow.put("movie_id", row.get("movie_id"));
-                resultRow.put("creator", row.get("creator"));
-                resultRow.put("content", row.get("content"));
-                resultRow.put("comment_rating", row.get("comment_rating"));
-                resultRow.put("comment_time", row.get("comment_time"));
-                resultRow.put("comment_add_time", row.get("comment_add_time"));
-                results.add(resultRow);
+                Iterable<Map<String, Object>> queryResult = neo4jSession.query(cypher, params);
+
+                for (Map<String, Object> row : queryResult) {
+                    Map<String, Object> resultRow = new HashMap<>();
+                    resultRow.put("comment_id", row.get("comment_id"));
+                    resultRow.put("movie_id", row.get("movie_id"));
+                    resultRow.put("creator", row.get("creator"));
+                    resultRow.put("content", row.get("content"));
+                    resultRow.put("comment_rating", row.get("comment_rating"));
+                    resultRow.put("comment_time", row.get("comment_time"));
+                    resultRow.put("comment_add_time", row.get("comment_add_time"));
+                    results.add(resultRow);
+                }
+
+                log.info("通过关系查询到 {} 条评论", results.size());
+            } catch (Exception e) {
+                log.error("通过关系查询评论失败：movieId={}", movieId, e);
             }
 
-            log.info("通过关系查询到 {} 条评论", results.size());
+            // 2. 如果通过关系查询不到，再通过movie_id属性查询
+            if (results.isEmpty()) {
+                log.info("开始通过movie_id属性查询评论，movieId={}", movieId);
+                try {
+                    String cypherByMovieId = "MATCH (c:Comment) " +
+                            "WHERE c.movie_id = $movieId " +
+                            "RETURN " +
+                            "id(c) AS comment_id, " +
+                            "c.movie_id AS movie_id, " +
+                            "c.creator AS creator, " +
+                            "c.content AS content, " +
+                            "c.comment_rating AS comment_rating, " +
+                            "c.comment_time AS comment_time, " +
+                            "c.comment_add_time AS comment_add_time";
 
+                    Iterable<Map<String, Object>> queryResultByMovieId = neo4jSession.query(cypherByMovieId, params);
+
+                    for (Map<String, Object> row : queryResultByMovieId) {
+                        Map<String, Object> resultRow = new HashMap<>();
+                        resultRow.put("comment_id", row.get("comment_id"));
+                        resultRow.put("movie_id", row.get("movie_id"));
+                        resultRow.put("creator", row.get("creator"));
+                        resultRow.put("content", row.get("content"));
+                        resultRow.put("comment_rating", row.get("comment_rating"));
+                        resultRow.put("comment_time", row.get("comment_time"));
+                        resultRow.put("comment_add_time", row.get("comment_add_time"));
+                        results.add(resultRow);
+                    }
+
+                    log.info("通过movie_id属性查询到 {} 条评论", results.size());
+                } catch (Exception e) {
+                    log.error("通过movie_id属性查询评论失败：movieId={}", movieId, e);
+                }
+
+                // 3. 如果还是查不到，尝试使用movieId（驼峰命名）
+                if (results.isEmpty()) {
+                    log.info("尝试通过movieId属性查询评论，movieId={}", movieId);
+                    try {
+                        String cypherByMovieId2 = "MATCH (c:Comment) " +
+                                "WHERE c.movieId = $movieId " +
+                                "RETURN " +
+                                "id(c) AS comment_id, " +
+                                "c.movieId AS movie_id, " +
+                                "c.creator AS creator, " +
+                                "c.content AS content, " +
+                                "c.comment_rating AS comment_rating, " +
+                                "c.comment_time AS comment_time, " +
+                                "c.comment_add_time AS comment_add_time";
+
+                        Iterable<Map<String, Object>> queryResultByMovieId2 = neo4jSession.query(cypherByMovieId2, params);
+
+                        for (Map<String, Object> row : queryResultByMovieId2) {
+                            Map<String, Object> resultRow = new HashMap<>();
+                            resultRow.put("comment_id", row.get("comment_id"));
+                            resultRow.put("movie_id", row.get("movie_id"));
+                            resultRow.put("creator", row.get("creator"));
+                            resultRow.put("content", row.get("content"));
+                            resultRow.put("comment_rating", row.get("comment_rating"));
+                            resultRow.put("comment_time", row.get("comment_time"));
+                            resultRow.put("comment_add_time", row.get("comment_add_time"));
+                            results.add(resultRow);
+                        }
+
+                        log.info("通过movieId属性查询到 {} 条评论", results.size());
+                    } catch (Exception e) {
+                        log.error("通过movieId属性查询评论失败：movieId={}", movieId, e);
+                    }
+                }
+
+                // 4. 最后尝试使用通用查询，不指定具体属性名
+                if (results.isEmpty()) {
+                    log.info("尝试通过通用查询获取所有评论，然后在内存中过滤，movieId={}", movieId);
+                    try {
+                        String cypherAllComments = "MATCH (c:Comment) " +
+                                "RETURN " +
+                                "id(c) AS comment_id, " +
+                                "c.movie_id AS movie_id, " +
+                                "c.movieId AS movieId, " +
+                                "c.creator AS creator, " +
+                                "c.content AS content, " +
+                                "c.comment_rating AS comment_rating, " +
+                                "c.comment_time AS comment_time, " +
+                                "c.comment_add_time AS comment_add_time";
+
+                        Iterable<Map<String, Object>> allCommentsResult = neo4jSession.query(cypherAllComments, Collections.emptyMap());
+
+                        for (Map<String, Object> row : allCommentsResult) {
+                            // 检查movie_id或movieId是否匹配
+                            Object movieIdObj = row.get("movie_id") != null ? row.get("movie_id") : row.get("movieId");
+                            if (movieIdObj != null) {
+                                Integer commentMovieId = null;
+                                if (movieIdObj instanceof Number) {
+                                    commentMovieId = ((Number) movieIdObj).intValue();
+                                } else if (movieIdObj instanceof String) {
+                                    try {
+                                        commentMovieId = Integer.parseInt((String) movieIdObj);
+                                    } catch (NumberFormatException e) {
+                                        // 忽略无法转换的字符串
+                                    }
+                                }
+                                if (commentMovieId != null && commentMovieId.equals(movieId)) {
+                                    Map<String, Object> resultRow = new HashMap<>();
+                                    resultRow.put("comment_id", row.get("comment_id"));
+                                    resultRow.put("movie_id", movieId);
+                                    resultRow.put("creator", row.get("creator"));
+                                    resultRow.put("content", row.get("content"));
+                                    resultRow.put("comment_rating", row.get("comment_rating"));
+                                    resultRow.put("comment_time", row.get("comment_time"));
+                                    resultRow.put("comment_add_time", row.get("comment_add_time"));
+                                    results.add(resultRow);
+                                }
+                            }
+                        }
+
+                        log.info("通过通用查询过滤到 {} 条评论", results.size());
+                    } catch (Exception e) {
+                        log.error("通过通用查询获取评论失败：movieId={}", movieId, e);
+                    }
+                }
+            }
+
+            log.info("最终查询到 {} 条评论，电影ID：{}", results.size(), movieId);
             return Result.success(results);
         } catch (Exception e) {
             log.error("获取电影评论失败：movieId={}", movieId, e);

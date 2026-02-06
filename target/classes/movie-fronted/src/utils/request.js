@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // 创建axios实例
 const service = axios.create({
-    baseURL: process.env.VUE_APP_BASE_API || '/api', // 后端接口前缀
+    baseURL: 'http://localhost:8081', // 后端服务地址
     timeout: 10000 // 请求超时
 })
 

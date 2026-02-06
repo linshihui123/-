@@ -67,4 +67,33 @@ public class MovieNode {
                 ? Arrays.asList(actorString.split("\\|"))
                 : null;
     }
+
+    // 自定义toString方法，避免递归调用
+    @Override
+    public String toString() {
+        return "MovieNode{" +
+                "id=" + id +
+                ", infoId=" + infoId +
+                ", movieName='" + movieName + '\'' +
+                ", type='" + type + '\'' +
+                ", region='" + region + '\'' +
+                ", movieRating=" + movieRating +
+                ", instruction='" + instruction + '\'' +
+                '}';
+    }
+
+    // 自定义hashCode方法，避免递归调用
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
+    }
+
+    // 自定义equals方法，避免递归调用
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        MovieNode that = (MovieNode) obj;
+        return id != null ? id.equals(that.id) : that.id == null;
+    }
 }

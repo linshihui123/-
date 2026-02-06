@@ -46,4 +46,32 @@ public class CommentNode {
     // 关系：电影-有评论->评论
     @Relationship(type = "HAS_COMMENT", direction = Relationship.INCOMING)
     private MovieNode movie;
+
+    // 自定义toString方法，避免递归调用
+    @Override
+    public String toString() {
+        return "CommentNode{" +
+                "id=" + id +
+                ", movieId=" + movieId +
+                ", rating=" + rating +
+                ", content='" + content + '\'' +
+                ", creator='" + creator + '\'' +
+                ", commentTime='" + commentTime + '\'' +
+                '}';
+    }
+
+    // 自定义hashCode方法，避免递归调用
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
+    }
+
+    // 自定义equals方法，避免递归调用
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        CommentNode that = (CommentNode) obj;
+        return id != null ? id.equals(that.id) : that.id == null;
+    }
 }

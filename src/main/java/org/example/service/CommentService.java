@@ -73,8 +73,8 @@ public class CommentService {
                 return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "评论内容不能为空");
             }
             
-            if (comment.getRating() == null || comment.getRating() < 1 || comment.getRating() > 5) {
-                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "评分应在1-5之间");
+            if (comment.getRating() == null || comment.getRating() < 0 || comment.getRating() > 10) {
+                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "评分应在0-10之间");
             }
             
             if (comment.getMovieId() == null || comment.getMovieId() == 0) {
@@ -133,8 +133,8 @@ public class CommentService {
             }
             
             if (updatedComment.getRating() != null) {
-                if (updatedComment.getRating() < 1 || updatedComment.getRating() > 5) {
-                    return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "评分应在1-5之间");
+                if (updatedComment.getRating() < 0 || updatedComment.getRating() > 10) {
+                    return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "评分应在0-10之间");
                 }
                 existingComment.setRating(updatedComment.getRating());
             }
@@ -198,8 +198,8 @@ public class CommentService {
                 return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "评论内容不能为空");
             }
             
-            if (comment.getRating() == null || (comment.getRating() < 1 || comment.getRating() > 5)) {
-                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "评分应在1-5之间");
+            if (comment.getRating() == null || (comment.getRating() < 0 || comment.getRating() > 10)) {
+                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "评分应在0-10之间");
             }
             
             if (comment.getMovieId() == null || comment.getMovieId() == 0) {

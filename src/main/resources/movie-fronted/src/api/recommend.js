@@ -64,3 +64,39 @@ export function getMultiDimensionalRanking(params) {
         params: params
     })
 }
+
+// 基于用户点赞的电影推荐：喜欢的电影 → 同导演 → 其他电影
+export function getRecommendMoviesByDirector(username, limit) {
+    return request({
+        url: `/api/kg/recommend/director`,
+        method: 'get',
+        params: {
+            username: username,
+            limit: limit
+        }
+    })
+}
+
+// 基于用户点赞的电影推荐：喜欢的电影 → 同类型 → 同地区 → 其他电影
+export function getRecommendMoviesByTypeAndRegion(username, limit) {
+    return request({
+        url: `/api/kg/recommend/type-region`,
+        method: 'get',
+        params: {
+            username: username,
+            limit: limit
+        }
+    })
+}
+
+// 基于用户点赞的电影推荐：喜欢的电影 → 同演员 → 同导演 → 其他电影
+export function getRecommendMoviesByActorAndDirector(username, limit) {
+    return request({
+        url: `/api/kg/recommend/actor-director`,
+        method: 'get',
+        params: {
+            username: username,
+            limit: limit
+        }
+    })
+}

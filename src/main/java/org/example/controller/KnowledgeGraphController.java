@@ -61,4 +61,49 @@ public class KnowledgeGraphController {
         
         return Result.success(stats);
     }
+
+    /**
+     * 基于用户点赞的电影推荐：喜欢的电影 → 同导演 → 其他电影
+     */
+    @GetMapping("/recommend/director")
+    public Result<List<MovieNode>> recommendMoviesByDirector(
+            @RequestParam String username,
+            @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<MovieNode> recommendedMovies = knowledgeGraphService.recommendMoviesByDirector(username, limit);
+            return Result.success(recommendedMovies);
+        } catch (Exception e) {
+            return Result.error(500, "获取推荐失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 基于用户点赞的电影推荐：喜欢的电影 → 同类型 → 同地区 → 其他电影
+     */
+    @GetMapping("/recommend/type-region")
+    public Result<List<MovieNode>> recommendMoviesByTypeAndRegion(
+            @RequestParam String username,
+            @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<MovieNode> recommendedMovies = knowledgeGraphService.recommendMoviesByTypeAndRegion(username, limit);
+            return Result.success(recommendedMovies);
+        } catch (Exception e) {
+            return Result.error(500, "获取推荐失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 基于用户点赞的电影推荐：喜欢的电影 → 同演员 → 同导演 → 其他电影
+     */
+    @GetMapping("/recommend/actor-director")
+    public Result<List<MovieNode>> recommendMoviesByActorAndDirector(
+            @RequestParam String username,
+            @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<MovieNode> recommendedMovies = knowledgeGraphService.recommendMoviesByActorAndDirector(username, limit);
+            return Result.success(recommendedMovies);
+        } catch (Exception e) {
+            return Result.error(500, "获取推荐失败: " + e.getMessage());
+        }
+    }
 }
