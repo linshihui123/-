@@ -134,6 +134,13 @@
             <artifactId>spring-boot</artifactId>
             <version>2.3.12.RELEASE</version>
         </dependency>
+        
+        <!-- 火山方舟SDK -->
+        <dependency>
+            <groupId>com.volcengine</groupId>
+            <artifactId>volcengine-java-sdk-ark-runtime</artifactId>
+            <version>LATEST</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -1,8 +1,9 @@
 package org.example.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.ai.AiDomainFacadeService;
 import org.example.model.CollaborativeFilteringResult;
-import org.example.model.MovieNode;
+import org.example.model.MovieRecommendItem;
 import org.example.response.Result;
 import org.example.response.ResultCodeEnum;
 import org.example.service.MovieRecommendationService;
@@ -10,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +22,9 @@ public class RecommendationController {
 
     @Autowired
     private MovieRecommendationService recommendationService;
+
+    @Autowired
+    private AiDomainFacadeService aiDomainFacadeService;
 
     /**
      * 基于用户名的协同过滤推荐接口
@@ -56,6 +59,22 @@ public class RecommendationController {
             return Result.error(org.example.response.ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影评论失败");
         }
     }
+
+    /**
+     * 智能推荐：返回统一格式列表，字段：index、movieName、intro、type、rating、director；无简介时由系统生成并落库
+     */
+    @GetMapping("/ai-recommend-with-comments")
+    public Result<List<MovieRecommendItem>> getAiRecommendWithComments(
+            @RequestParam(defaultValue = "8") Integer limit) {
+        try {
+            List<MovieRecommendItem> list = aiDomainFacadeService.getRecommendationWithComments(limit);
+            return Result.success(list);
+        } catch (Exception e) {
+            log.error("获取智能推荐失败：limit={}", limit, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取智能推荐失败");
+        }
+    }
+
     /**
      * 电影数据分析
      */
@@ -105,11 +124,6 @@ public class RecommendationController {
             return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取区域统计信息失败");
         }
     }
-    /**
-     *
-     * 计算电影间的评分相似度（如电影 X 和 Y 的评分分布高度相似），结合知识图谱（同导演 / 演员）强化推荐
-     * //TODO:问AI说某部电影的评分是多少，同类型的相同评分，或者同导演，演员等
-     */
     
     /**
      * 多维度电影榜单接口

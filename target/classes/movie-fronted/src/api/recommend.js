@@ -100,3 +100,42 @@ export function getRecommendMoviesByActorAndDirector(username, limit) {
         }
     })
 }
+
+// 获取有点赞记录的用户名列表（用于知识图谱推荐）
+export function getUsersWithLikes() {
+    return request({
+        url: '/like/users-with-likes',
+        method: 'get'
+    })
+}
+
+// 获取指定用户的点赞电影列表（基于用户点赞记录）
+export function getLikedMovies(username) {
+    return request({
+        url: '/like/liked-movies',
+        method: 'get',
+        params: { username }
+    })
+}
+
+// 火山方舟单次对话（大模型响应较慢，单独设置 60 秒超时）
+export function arkChat(message) {
+    return request({
+        url: '/ark/chat',
+        method: 'post',
+        timeout: 60000,
+        data: {
+            message: message
+        }
+    })
+}
+
+// 火山方舟多轮对话（大模型响应较慢，单独设置 60 秒超时）
+export function arkMultiChat(requestData) {
+    return request({
+        url: '/ark/chat/multi',
+        method: 'post',
+        timeout: 60000,
+        data: requestData // 包含messages和userId
+    })
+}

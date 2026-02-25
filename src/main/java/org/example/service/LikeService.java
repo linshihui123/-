@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -114,6 +113,28 @@ public class LikeService {
         } catch (Exception e) {
             log.error("检查点赞关系失败", e);
             return false;
+        }
+    }
+
+    /**
+     * 获取有点赞记录的用户名列表（用于知识图谱推荐时的用户下拉）
+     */
+    public List<String> getUsernamesWithLikes() {
+        try {
+            String cypher = "MATCH (u:User)-[:LIKED]->(m:Movie) RETURN DISTINCT u.username AS username ORDER BY u.username";
+            Map<String, Object> params = new HashMap<>();
+            Iterable<Map<String, Object>> result = neo4jSession.query(cypher, params);
+            List<String> usernames = new ArrayList<>();
+            for (Map<String, Object> row : result) {
+                Object name = row.get("username");
+                if (name != null && !name.toString().trim().isEmpty()) {
+                    usernames.add(name.toString().trim());
+                }
+            }
+            return usernames;
+        } catch (Exception e) {
+            log.error("获取有点赞记录的用户列表失败", e);
+            return Collections.emptyList();
         }
     }
 

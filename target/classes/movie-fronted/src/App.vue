@@ -10,6 +10,14 @@
           <div class="nav-section">
             <template v-if="!currentUser">
               <el-button
+                  type="success"
+                  plain
+                  @click="aiPanelVisible = true"
+                  class="auth-button ai-nav-btn"
+              >
+                <i class="el-icon-chat-dot-round"></i> AI 助手
+              </el-button>
+              <el-button
                   type="primary"
                   plain
                   @click="showLoginDialog"
@@ -19,8 +27,15 @@
               </el-button>
             </template>
             <template v-else>
+              <el-button
+                  type="success"
+                  plain
+                  @click="aiPanelVisible = true"
+                  class="ai-nav-btn"
+              >
+                <i class="el-icon-chat-dot-round"></i> AI 助手
+              </el-button>
               <el-button-group class="nav-buttons">
-                <!-- 移除推荐按钮 -->
                 <el-button
                     type="primary"
                     plain
@@ -76,6 +91,12 @@
           </div>
         </div>
       </el-header>
+      <!-- 悬浮 AI 助手（收在导航，用时悬浮） -->
+      <AiAssistantFloat
+          :visible="aiPanelVisible"
+          :current-user="currentUser"
+          @close="aiPanelVisible = false"
+      />
       <el-main>
         <!-- 用户未登录时直接显示浏览界面 -->
         <div v-if="!currentUser && !activeTab" class="browse-container">
@@ -246,6 +267,7 @@ import KnowledgeGraph from './components/KnowledgeGraph.vue'
 import CollaborativeFilteringRecommend from './components/CollaborativeFilteringRecommend.vue'
 import MovieRatingStats from './components/MovieRatingStats.vue'
 import MovieRankings from './components/MovieRankings.vue'
+import AiAssistantFloat from './components/AiAssistantFloat.vue'
 // 移除推荐相关接口导入
 import { getMovieDetail } from './api/recommend'
 import axios from 'axios'
@@ -259,7 +281,8 @@ export default {
     KnowledgeGraph,
     CollaborativeFilteringRecommend,
     MovieRatingStats,
-    MovieRankings
+    MovieRankings,
+    AiAssistantFloat
   },
   data() {
     return {
@@ -275,6 +298,7 @@ export default {
       currentUser: null,
       currentUserId: null,
       activeTab: null, // 默认为null，显示首页
+      aiPanelVisible: false, // AI 助手悬浮窗是否显示
       // 知识图谱预览相关数据
       graphPreviewNodes: [],
       graphStats: {

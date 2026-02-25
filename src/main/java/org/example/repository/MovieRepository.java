@@ -62,4 +62,13 @@ public interface MovieRepository extends Neo4jRepository<MovieNode, Long> {
 
     @Query("MATCH (m:Movie) RETURN m SKIP $skip LIMIT $size")
     List<MovieNode> findOtherAllMovies(@Param("skip") int skip, @Param("size") int size);
+
+    /** 按节点关键词搜索：电影名、导演、演员、地区、类型 任一包含关键词即返回 */
+    @Query("MATCH (m:Movie) WHERE toLower(COALESCE(m.name,'')) CONTAINS toLower($keyword) " +
+           "OR toLower(COALESCE(m.director,'')) CONTAINS toLower($keyword) " +
+           "OR toLower(COALESCE(m.actor,'')) CONTAINS toLower($keyword) " +
+           "OR toLower(COALESCE(m.region,'')) CONTAINS toLower($keyword) " +
+           "OR toLower(COALESCE(m.type,'')) CONTAINS toLower($keyword) " +
+           "RETURN m LIMIT $limit")
+    List<MovieNode> findMoviesByNodeKeyword(@Param("keyword") String keyword, @Param("limit") int limit);
 }

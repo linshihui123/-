@@ -16,7 +16,7 @@
             </el-select>
           </el-form-item>
           <el-form-item label="推荐类型">
-            <el-select v-model="recommendationType" placeholder="选择推荐类型" @change="loadRecommendations">
+            <el-select v-model="recommendationType" placeholder="选择推荐类型" @change="onRecommendationTypeChange">
               <el-option value="collaborative" label="协同过滤推荐"></el-option>
               <el-option value="director" label="基于导演推荐"></el-option>
               <el-option value="type-region" label="基于类型和地区推荐"></el-option>
@@ -112,7 +112,9 @@ import {
   getAllCommentCreators,
   getRecommendMoviesByDirector,
   getRecommendMoviesByTypeAndRegion,
-  getRecommendMoviesByActorAndDirector
+  getRecommendMoviesByActorAndDirector,
+  getUsersWithLikes,
+  getLikedMovies
 } from '../api/recommend';
 
 export default {
@@ -135,42 +137,56 @@ export default {
   },
   // 页面挂载时加载用户列表并默认获取推荐
   async mounted() {
-    await this.loadCommentCreators();
+    await this.loadUserList();
     if (this.userList.length > 0) {
       this.selectedUserId = this.userList[0].value;
       this.loadRecommendations();
     }
   },
   methods: {
-    // 加载评论创建者列表（下拉框数据）
-    async loadCommentCreators() {
+    // 根据推荐类型加载用户列表：协同过滤用评论用户，知识图谱推荐用有点赞记录的用户
+    async loadUserList() {
+      const isKgType = ['director', 'type-region', 'actor-director'].indexOf(this.recommendationType) !== -1;
       try {
-        const response = await getAllCommentCreators();
-        if (response && response.data) {
-          // 兼容标准Result格式和直接返回数组格式
-          if (response.data.code === 200 && response.data.data) {
-            this.userList = response.data.data.map(creator => ({
-              value: creator,
-              label: creator
-            }));
-          } else if (Array.isArray(response.data)) {
-            this.userList = response.data.map(creator => ({
-              value: creator,
-              label: creator
-            }));
+        if (isKgType) {
+          const res = await getUsersWithLikes();
+          const list = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
+          this.userList = (list || []).map(name => ({ value: name, label: name }));
+          if (this.userList.length === 0) {
+            this.$message.warning('暂无有点赞记录的用户，请先使用「生成点赞记录」或选择协同过滤推荐');
+          }
+        } else {
+          const response = await getAllCommentCreators();
+          if (response && response.data) {
+            if (response.data.code === 200 && response.data.data) {
+              this.userList = response.data.data.map(creator => ({ value: creator, label: creator }));
+            } else if (Array.isArray(response.data)) {
+              this.userList = response.data.map(creator => ({ value: creator, label: creator }));
+            } else {
+              this.userList = [{ value: 'default', label: '默认用户' }];
+              this.selectedUserId = 'default';
+            }
           } else {
-            // 兜底默认用户
             this.userList = [{ value: 'default', label: '默认用户' }];
             this.selectedUserId = 'default';
           }
-        } else {
-          this.userList = [{ value: 'default', label: '默认用户' }];
-          this.selectedUserId = 'default';
         }
       } catch (error) {
-        console.error('获取评论创建者失败:', error);
+        console.error('获取用户列表失败:', error);
         this.userList = [{ value: 'default', label: '默认用户' }];
         this.selectedUserId = 'default';
+      }
+    },
+
+    // 推荐类型切换：先按类型加载对应用户列表（点赞用户 / 评论用户），再拉推荐
+    async onRecommendationTypeChange() {
+      await this.loadUserList();
+      if (this.userList.length > 0) {
+        this.selectedUserId = this.userList[0].value;
+        await this.loadRecommendations();
+      } else {
+        this.movies = [];
+        this.userLikedMovies = [];
       }
     },
 
@@ -247,12 +263,12 @@ export default {
               response = null;
           }
 
-          if (response && response.data) {
-            // 兼容标准Result格式
-            if (response.data.code === 200) {
-              this.movies = response.data.data || [];
+          if (response) {
+            // request 拦截器返回 Result：{ code, msg, data }
+            if (response.code === 200) {
+              this.movies = response.data || [];
             } else {
-              this.$message.warning(response.data.msg || '获取推荐失败');
+              this.$message.warning(response.msg || '获取推荐失败');
               return;
             }
           }
@@ -276,29 +292,17 @@ export default {
       }
     },
 
-    // 加载用户点赞的电影
+    // 加载用户点赞的电影（基于用户点赞记录接口，用于「我的点赞电影」选项卡）
     async loadUserLikedMovies() {
+      const isKgType = ['director', 'type-region', 'actor-director'].indexOf(this.recommendationType) !== -1;
+      if (!isKgType) return;
       try {
-        // 根据推荐类型获取对应的推荐结果作为用户点赞的电影
-        // 实际项目中，这里应该调用专门的接口获取用户点赞的电影
-        if (this.recommendationType === 'director') {
-          const response = await getRecommendMoviesByDirector(this.selectedUserId, 10);
-          if (response && response.data && response.data.code === 200) {
-            this.userLikedMovies = response.data.data || [];
-          }
-        } else if (this.recommendationType === 'type-region') {
-          const response = await getRecommendMoviesByTypeAndRegion(this.selectedUserId, 10);
-          if (response && response.data && response.data.code === 200) {
-            this.userLikedMovies = response.data.data || [];
-          }
-        } else if (this.recommendationType === 'actor-director') {
-          const response = await getRecommendMoviesByActorAndDirector(this.selectedUserId, 10);
-          if (response && response.data && response.data.code === 200) {
-            this.userLikedMovies = response.data.data || [];
-          }
-        }
+        const res = await getLikedMovies(this.selectedUserId);
+        const list = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
+        this.userLikedMovies = list || [];
       } catch (error) {
         console.error('获取用户点赞电影失败:', error);
+        this.userLikedMovies = [];
       }
     },
 

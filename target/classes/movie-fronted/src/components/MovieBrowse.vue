@@ -81,55 +81,6 @@
           </div>
         </el-card>
       </el-main>
-
-      <!-- AI助手推荐侧边栏 -->
-      <el-aside width="350px" class="recommend-sidebar">
-        <el-card class="ai-recommend-card" shadow="hover">
-          <div slot="header" class="ai-card-header">
-            <i class="el-icon-chat-dot-round"></i>
-            <span>AI 助手推荐</span>
-          </div>
-          <div class="ai-chat-container">
-            <div class="chat-messages" ref="chatMessages">
-              <div v-for="(msg, index) in chatMessages" :key="index" class="message-item" :class="msg.role">
-                <div class="message-avatar" :class="msg.role">
-                  <i v-if="msg.role === 'user'" class="el-icon-user-solid"></i>
-                  <i v-if="msg.role === 'assistant'" class="el-icon-chat-line-round"></i>
-                </div>
-                <div class="message-content">
-                  <p v-html="formatMessage(msg.content)"></p>
-                </div>
-              </div>
-            </div>
-            <div class="input-area">
-              <el-input
-                  v-model="userInput"
-                  :rows="3"
-                  type="textarea"
-                  placeholder="告诉我您喜欢什么类型的电影，例如：'推荐一些高分科幻电影' 或 '我想看张艺谋导演的电影'"
-                  maxlength="200"
-                  show-word-limit
-                  @keyup.enter.native="handleSendRequest($event)"
-              ></el-input>
-              <el-button
-                  type="primary"
-                  :loading="aiLoading"
-                  @click="sendRecommendRequest"
-                  :disabled="!userInput.trim()"
-                  class="send-button"
-              >
-                <i class="el-icon-position"></i> 获取推荐
-              </el-button>
-            </div>
-            <div class="quick-actions">
-              <el-button size="mini" @click="setQuickPrompt('推荐一些高分电影')">高分电影</el-button>
-              <el-button size="mini" @click="setQuickPrompt('推荐科幻类型的电影')">科幻电影</el-button>
-              <el-button size="mini" @click="setQuickPrompt('推荐喜剧类型的电影')">喜剧电影</el-button>
-              <el-button size="mini" @click="setQuickPrompt('推荐张艺谋导演的电影')">张艺谋作品</el-button>
-            </div>
-          </div>
-        </el-card>
-      </el-aside>
     </el-container>
 
     <!-- 电影详情弹窗 -->
@@ -276,39 +227,16 @@ export default {
       movieDetailDialogVisible: false,
       currentMovie: null,
       comments: [],
-      // AI助手相关数据
-      chatMessages: [
-        {
-          role: 'assistant',
-          content: '您好！我是AI电影推荐助手，可以根据您的喜好推荐电影。请告诉我您想看什么类型的电影，或者对导演、演员有什么偏好吗？'
-        }
-      ],
-      userInput: '',
-      aiLoading: false,
       currentUser: null,
       isShowingCommentsOnly: false,
-      // 新增：评论提交相关数据
-      userRating: undefined, // 用户评分（1-5）
-      userCommentContent: '', // 用户评论内容
-      commentSubmitting: false // 评论提交加载状态
+      userRating: undefined,
+      userCommentContent: '',
+      commentSubmitting: false
     }
   },
   created() {
     this.loadAllMovies();
     this.checkUserSession();
-  },
-  mounted() {
-    this.scrollToBottom();
-  },
-  watch: {
-    chatMessages: {
-      handler() {
-        this.$nextTick(() => {
-          this.scrollToBottom();
-        });
-      },
-      deep: true
-    }
   },
   methods: {
     // 检查用户会话
@@ -346,119 +274,6 @@ export default {
       } else {
         console.log('未找到用户信息');
       }
-    },
-
-    // 滚动到底部
-    scrollToBottom() {
-      this.$nextTick(() => {
-        if (this.$refs.chatMessages) {
-          this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
-        }
-      });
-    },
-
-    // 格式化消息内容
-    formatMessage(content) {
-      return content.replace(/\n/g, '<br>');
-    },
-
-    // 设置快捷提示
-    setQuickPrompt(prompt) {
-      this.userInput = prompt;
-    },
-
-    // 发送推荐请求
-    async sendRecommendRequest() {
-      if (!this.userInput.trim()) {
-        this.$message.warning('请输入您的推荐需求');
-        return;
-      }
-      this.chatMessages.push({
-        role: 'user',
-        content: this.userInput
-      });
-      this.aiLoading = true;
-      try {
-        const userId = this.currentUser ? this.currentUser.userid || this.currentUser.id || this.currentUser.userId : 'anonymous';
-        const intentResponse = await parseUserIntent({
-          userInput: this.userInput,
-          userId: userId
-        });
-        if (intentResponse && intentResponse.intentType) {
-          const recommendResponse = await getRecommendMoviesPost({
-            userId: userId,
-            topN: 6,
-            intent: intentResponse
-          });
-          if (recommendResponse && recommendResponse.data) {
-            this.movies = recommendResponse.data.map(movie => {
-              return {
-                ...movie,
-                id: movie.id || 0,
-                movieId: movie.movieId || null,
-                movieName: movie.movieName || movie.name || '未知电影',
-                type: movie.type || '未知',
-                direction: movie.direction || movie.region || '未知',
-                rating: movie.rating || movie.movie_rating || movie.movieRating || '暂无评分',
-                instruction: movie.instruction || '',
-                directors: movie.directors || movie.director || [],
-                actors: movie.actors || movie.actor || [],
-                directorList: movie.directorString ? movie.directorString.split('|') :
-                    movie.director ? (typeof movie.director === 'string' ? movie.director.split('|') : []) : [],
-                actorList: movie.actorString ? movie.actorString.split('|') :
-                    movie.actor ? (typeof movie.actor === 'string' ? movie.actor.split('|') : []) : []
-              };
-            }) || [];
-            this.total = this.movies.length;
-            this.currentPage = 1;
-            const intentType = intentResponse.intentType;
-            let responseText = '';
-            if (intentType === 'director_based') {
-              responseText = `根据您的要求，为您推荐了相关导演的作品，共${this.movies.length}部电影。`;
-            } else if (intentType === 'type_based') {
-              responseText = `根据您的类型偏好，为您推荐了${intentResponse.params && intentResponse.params.type ? intentResponse.params.type : ''}类型的电影，共${this.movies.length}部。`;
-            } else if (intentType === 'rating_based') {
-              responseText = `为您推荐了高分电影，共${this.movies.length}部。`;
-            } else {
-              responseText = `根据您的喜好，为您推荐了${this.movies.length}部电影。`;
-            }
-            this.chatMessages.push({
-              role: 'assistant',
-              content: responseText + '<br><br>以下是为您推荐的电影：<br>' +
-                  this.movies.slice(0, 3).map(m => `• ${m.movieName || m.name}`).join('<br>') +
-                  (this.movies.length > 3 ? `<br>... 还有${this.movies.length - 3}部电影` : '')
-            });
-          } else {
-            this.chatMessages.push({
-              role: 'assistant',
-              content: '抱歉，没有找到符合您要求的电影，请尝试其他条件。'
-            });
-          }
-        } else {
-          this.chatMessages.push({
-            role: 'assistant',
-            content: '抱歉，未能理解您的需求，请尝试用更清晰的语言描述您的电影偏好。'
-          });
-        }
-      } catch (error) {
-        console.error('AI推荐请求失败:', error);
-        this.chatMessages.push({
-          role: 'assistant',
-          content: '抱歉，推荐服务暂时不可用，请稍后重试。'
-        });
-      } finally {
-        this.aiLoading = false;
-        this.userInput = '';
-      }
-    },
-
-    // 处理回车键发送
-    handleSendRequest(event) {
-      if (event.shiftKey) {
-        return;
-      }
-      event.preventDefault();
-      this.sendRecommendRequest();
     },
 
     // 加载所有电影
@@ -888,9 +703,12 @@ export default {
 .recommend-sidebar .el-card {
   height: calc(100vh - 120px);
   margin: 0;
-  border-radius: 0 8px 8px 0;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e8e8e8;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .ai-recommend-card {
@@ -901,9 +719,11 @@ export default {
 
 .ai-recommend-card .el-card__body {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   padding: 0;
+  overflow: hidden;
 }
 
 .card-header {
@@ -922,18 +742,59 @@ export default {
 }
 
 .ai-card-header {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
+  padding: 20px;
+  border-bottom: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  border-radius: 8px 8px 0 0;
 }
 
-.ai-card-header i {
-  color: #409EFF;
+.header-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.header-icon {
+  font-size: 24px;
+  color: white;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.header-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 400;
 }
 
 .movie-card {
@@ -1077,21 +938,55 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   padding: 0;
+  background: #f8f9fa;
 }
 
 .chat-messages {
   flex: 1;
+  min-height: 0;
   padding: 20px;
   overflow-y: auto;
-  background: #fafafa;
-  min-height: 300px;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+  scroll-behavior: smooth;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
 }
 
 .message-item {
   display: flex;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   align-items: flex-start;
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message-item.user {
@@ -1099,75 +994,209 @@ export default {
 }
 
 .message-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.message-avatar:hover {
+  transform: scale(1.1);
 }
 
 .message-avatar.user {
-  background: #409EFF;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
 }
 
 .message-avatar.assistant {
-  background: #67C23A;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   color: white;
 }
 
 .message-content {
-  max-width: calc(100% - 50px);
-  margin: 0 15px;
+  max-width: calc(100% - 60px);
+  margin: 0 12px;
+  min-width: 0;
 }
 
-.message-content p {
+.message-bubble {
   margin: 0;
-  padding: 10px 15px;
+  padding: 12px 16px;
   border-radius: 18px;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s;
 }
 
-.message-item.user .message-content p {
-  background: #409EFF;
+.message-bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-bubble:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.message-bubble.user {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border-bottom-right-radius: 5px;
+  border-bottom-right-radius: 4px;
 }
 
-.message-item.assistant .message-content p {
+.message-bubble.assistant {
   background: white;
   color: #333;
-  border: 1px solid #e0e0e0;
-  border-bottom-left-radius: 5px;
+  border: 1px solid #e8e8e8;
+  border-bottom-left-radius: 4px;
+}
+
+/* 打字指示器 */
+.typing-indicator {
+  opacity: 0.7;
+}
+
+.typing {
+  background: white !important;
+  padding: 16px 20px !important;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.typing span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #999;
+  animation: typing 1.4s infinite;
+}
+
+.typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
 }
 
 .input-area {
-  padding: 15px 20px;
-  border-top: 1px solid #eee;
+  padding: 20px;
+  border-top: 1px solid #e8e8e8;
   background: white;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.chat-input {
+  margin-bottom: 12px;
+}
+
+.chat-input .el-textarea__inner {
+  border-radius: 12px;
+  border: 2px solid #e8e8e8;
+  transition: all 0.3s;
+  font-size: 14px;
+  padding: 12px 16px;
+}
+
+.chat-input .el-textarea__inner:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .send-button {
-  margin-top: 10px;
   width: 100%;
+  height: 42px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.send-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.send-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .quick-actions {
-  padding: 0 20px 15px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  border-top: 1px solid #eee;
+  padding: 16px 20px;
+  border-top: 1px solid #e8e8e8;
   background: white;
 }
 
-.quick-actions .el-button {
-  padding: 6px 10px;
-  font-size: 12px;
+.quick-actions-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+}
+
+.quick-actions-title i {
+  color: #667eea;
+  font-size: 14px;
+}
+
+.quick-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-btn {
+  padding: 8px 14px !important;
+  font-size: 13px !important;
+  border-radius: 20px !important;
+  border: 1px solid #e8e8e8 !important;
+  background: white !important;
+  color: #666 !important;
+  transition: all 0.3s !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.quick-btn:hover {
+  border-color: #667eea !important;
+  color: #667eea !important;
+  background: #f0f4ff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2) !important;
+}
+
+.quick-btn i {
+  margin-right: 4px;
+  font-size: 14px;
 }
 
 .movie-detail-content h3 {

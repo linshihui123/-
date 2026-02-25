@@ -104,7 +104,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import request from '@/utils/request'
 const echarts = require('echarts')
 
 export default {
@@ -199,11 +199,21 @@ export default {
     },
 
     fetchGraphData() {
-      const apiUrl = `http://localhost:8081/api/kg/graph-data?movieCount=${this.localMovieCount}`
-      axios.get(apiUrl)
+      const count = Math.min(Math.max(1, this.localMovieCount), 100)
+      const params = { movieCount: count }
+      if (this.searchKeyword && this.searchKeyword.trim()) {
+        params.keyword = this.searchKeyword.trim()
+      }
+      request.get('/api/kg/graph-data', { params })
           .then(res => {
-            if (res.status === 200) {
-              this.graphData = res.data.data || res.data
+            const raw = (res && res.data) ? res.data : res
+            if (raw) {
+              this.graphData = { nodes: raw.nodes || [], edges: raw.edges || [] }
+              this.graphData._fromKeywordSearch = !!(this.searchKeyword && this.searchKeyword.trim())
+              const nodes = this.graphData.nodes || []
+              if (nodes.length === 0 && this.searchKeyword && this.searchKeyword.trim()) {
+                this.$message.info('未找到与「' + this.searchKeyword.trim() + '」相关的节点')
+              }
               this.renderGraph()
             }
           })
@@ -293,8 +303,8 @@ export default {
         }
       }
 
-      // 关键词搜索
-      if (this.searchKeyword) {
+      // 仅在全量数据下做前端关键词过滤；若本次数据是后端按 keyword 搜索返回的子图，不再过滤，直接展示
+      if (this.searchKeyword && !this.graphData._fromKeywordSearch) {
         const keyword = this.searchKeyword.trim().toLowerCase()
         filteredNodes = filteredNodes.filter(node => node.name && node.name.toLowerCase().includes(keyword))
         const filteredNodeIds = filteredNodes.map(node => node.id)
@@ -305,8 +315,11 @@ export default {
 
       const nodeCategories = this.getNodeCategories()
 
-      // 收集所有电影节点
-      const movieNodes = filteredNodes.filter(node => node.type === 'movie')
+      // 收集所有电影节点（作为布局中心）；若无电影节点则用任意节点保证有内容可展示
+      let movieNodes = filteredNodes.filter(node => node.type === 'movie')
+      if (movieNodes.length === 0 && filteredNodes.length > 0) {
+        movieNodes = filteredNodes.slice(0, 1)
+      }
 
       // 第一步：建立电影节点与子节点的映射关系
       movieNodes.forEach(movieNode => {
@@ -321,8 +334,8 @@ export default {
         const childNodeIds = []
         movieEdges.forEach(edge => {
           const childId = edge.source === movieNode.id ? edge.target : edge.source
-          // 排除电影节点自身
-          const childNode = filteredNodes.find(n => n.id === childId && n.type !== 'movie')
+          if (childId === movieNode.id) return
+          const childNode = filteredNodes.find(n => n.id === childId)
           if (childNode) {
             childNodeIds.push(childId)
           }
@@ -843,7 +856,11 @@ export default {
     },
 
     searchNodes() {
-      this.renderGraph()
+      if (this.searchKeyword && this.searchKeyword.trim()) {
+        this.fetchGraphData()
+      } else {
+        this.renderGraph()
+      }
     },
 
     resetGraph() {
