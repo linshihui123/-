@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +26,24 @@ public class RecommendationController {
 
     @Autowired
     private AiDomainFacadeService aiDomainFacadeService;
+
+    /**
+     * 个性化融合推荐：按配置权重融合协同过滤、内容推荐、知识图谱推荐
+     * @param username 用户名
+     * @param limit 返回数量，默认 20
+     */
+    @GetMapping("/fused")
+    public Result<List<org.example.model.MovieNode>> fusedRecommend(
+            @RequestParam String username,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        try {
+            List<org.example.model.MovieNode> list = recommendationService.fusedRecommendationByUsername(username, limit);
+            return Result.success(list);
+        } catch (Exception e) {
+            log.error("融合推荐失败：username={}, limit={}", username, limit, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "融合推荐失败");
+        }
+    }
 
     /**
      * 基于用户名的协同过滤推荐接口
@@ -47,16 +66,17 @@ public class RecommendationController {
     }
 
     /**
-     * 基于评论文本的兴趣推荐
+     * 获取指定电影的评论列表及 AI 总结。若该电影已存在缓存的 ai_comments_summary 则直接返回（响应快）；
+     * 否则调用大模型生成总结并写入电影节点，下次可直接使用。
+     * 返回：{ "comments": 评论列表, "aiSummary": 大模型总结（可能为 null） }
      */
     @GetMapping("/movie-comments")
-    public Result<List<Map<String, Object>>> getMovieCommentsByMovieName(@RequestParam String movieName) {
+    public Result<Map<String, Object>> getMovieCommentsByMovieName(@RequestParam String movieName) {
         try {
-            Result<List<Map<String, Object>>> result = recommendationService.getMovieCommentsByMovieName(movieName);
-            return result;
+            return recommendationService.getMovieCommentsWithAiSummary(movieName);
         } catch (Exception e) {
             log.error("获取电影评论失败：movieName={}", movieName, e);
-            return Result.error(org.example.response.ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影评论失败");
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影评论失败");
         }
     }
 

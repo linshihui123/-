@@ -2,6 +2,7 @@
 package org.example.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.ai.AiDomainFacadeService;
 import org.example.model.*;
 import org.example.repository.MovieRepository;
 import org.example.repository.CommentRepository;
@@ -20,7 +21,9 @@ import org.springframework.util.CollectionUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 @Slf4j
@@ -36,7 +39,29 @@ public class MovieRecommendationService {
     @Autowired
     private CommentRepository commentRepository;
 
+    @Autowired
+    private KnowledgeGraphService knowledgeGraphService;
 
+    @Autowired
+    private AiDomainFacadeService aiDomainFacadeService;
+
+    /** 电影评论+AI总结 内存缓存，避免每次请求都查库，响应更快。key=电影名，value=缓存项（含过期时间） */
+    private final Map<String, CacheEntry<Result<Map<String, Object>>>> movieCommentsCache = new ConcurrentHashMap<>();
+    private static final long COMMENTS_CACHE_TTL_MS = 30 * 60 * 1000L; // 30 分钟
+
+    private static class CacheEntry<T> {
+        final T value;
+        final long expireAt;
+
+        CacheEntry(T value, long ttlMs) {
+            this.value = value;
+            this.expireAt = System.currentTimeMillis() + ttlMs;
+        }
+
+        boolean isExpired() {
+            return System.currentTimeMillis() > expireAt;
+        }
+    }
 
     // 配置注入（替代硬编码）
 
@@ -59,28 +84,22 @@ public class MovieRecommendationService {
 
 
     /**
-     * 获取所有电影列表（分页支持）
+     * 获取所有电影列表（分页支持）。
+     * Neo4j 异常时返回空列表，避免前端报错。
      */
     public Result<List<MovieNode>> getAllMovies(int page, int size) {
         try {
             int skip = page * size;
-
-            // 获取所有电影（不只是有评论的电影）
             List<MovieNode> allMovies = movieRepository.findOtherAllMovies(skip, size);
-
-            // 获取所有电影总数
             long total = getTotalMovieCount();
-
-            // 检查allMovies是否为null
             if (allMovies == null) {
                 allMovies = new ArrayList<>();
             }
-
-            // 使用专门的方法来设置分页数据
             return Result.successWithTotal(allMovies, total);
         } catch (Exception e) {
-            log.error("获取所有电影列表失败：page={}, size={}", page, size, e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取所有电影列表失败");
+            // Neo4j 未启动或连接失败时（如 Connection refused: localhost:7687）返回空列表，避免前端报错
+            log.warn("获取所有电影列表失败（Neo4j 可能未启动）：page={}, size={}, msg={}", page, size, e.getMessage());
+            return Result.successWithTotal(new ArrayList<>(), 0L);
         }
     }
 
@@ -447,6 +466,114 @@ public class MovieRecommendationService {
     }
 
     /**
+     * 获取指定电影的评论及 AI 总结。
+     * 1）先查内存缓存，命中则直接返回，不再访问数据库或大模型；
+     * 2）未命中则查 Neo4j，若已有落库的 ai_comments_summary 则用库里的，不调大模型；
+     * 3）仅当库中无缓存时才调用大模型并落库；结果写入内存缓存，后续请求响应更快。
+     * 返回 Map: "comments" -> 评论列表, "aiSummary" -> 总结文本（可能为 null）
+     */
+    public Result<Map<String, Object>> getMovieCommentsWithAiSummary(String movieName) {
+        if (movieName == null || movieName.trim().isEmpty()) {
+            return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "电影名称不能为空");
+        }
+        String key = movieName.trim();
+
+        // 1. 内存缓存命中则直接返回，响应最快（不查库、不调 AI）
+        CacheEntry<Result<Map<String, Object>>> entry = movieCommentsCache.get(key);
+        if (entry != null) {
+            if (entry.isExpired()) {
+                movieCommentsCache.remove(key);
+            } else {
+                log.debug("电影 {} 命中内存缓存，直接返回", key);
+                return entry.value;
+            }
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        try {
+            // 2. 查电影节点：若已有落库的 AI 总结，用库里的，不调大模型
+            List<MovieNode> movieList = movieRepository.findByMovieNameExact(key);
+            MovieNode movie = (movieList != null && !movieList.isEmpty()) ? movieList.get(0) : null;
+            String cachedSummary = (movie != null && movie.getAiCommentsSummary() != null)
+                    ? movie.getAiCommentsSummary().trim() : null;
+            if (cachedSummary != null && !cachedSummary.isEmpty()) {
+                Result<List<Map<String, Object>>> commentResult = getMovieCommentsByMovieName(key);
+                List<Map<String, Object>> comments = (commentResult != null && commentResult.getCode() == 200 && commentResult.getData() != null)
+                        ? commentResult.getData() : new ArrayList<>();
+                data.put("comments", comments);
+                data.put("aiSummary", cachedSummary);
+                log.info("电影 {} 使用数据库中已落库的 AI 评论总结，未调用大模型", key);
+                Result<Map<String, Object>> result = Result.success(data);
+                movieCommentsCache.put(key, new CacheEntry<>(result, COMMENTS_CACHE_TTL_MS));
+                return result;
+            }
+
+            Result<List<Map<String, Object>>> commentResult = getMovieCommentsByMovieName(key);
+            List<Map<String, Object>> comments = (commentResult != null && commentResult.getCode() == 200 && commentResult.getData() != null)
+                    ? commentResult.getData() : new ArrayList<>();
+            data.put("comments", comments);
+
+            // 无评论时：直接调用大模型，根据电影名或电影元数据生成总结并返回（有节点则落库）
+            if (comments.isEmpty()) {
+                String aiSummary = null;
+                if (movie != null) {
+                    if (movie.getAiCommentsSummary() != null && !movie.getAiCommentsSummary().trim().isEmpty()) {
+                        aiSummary = movie.getAiCommentsSummary().trim();
+                    } else {
+                        try {
+                            aiSummary = aiDomainFacadeService.buildMovieSummaryFromMetadata(movie);
+                            if (aiSummary != null && !aiSummary.trim().isEmpty()) {
+                                movie.setAiCommentsSummary(aiSummary.trim());
+                                movieRepository.save(movie);
+                                log.info("电影 {} 无评论，已根据元数据生成总结并落库", key);
+                            }
+                        } catch (Exception ex) {
+                            log.warn("无评论电影生成总结失败：movieName={}", key, ex);
+                        }
+                    }
+                }
+                if (aiSummary == null || aiSummary.isEmpty()) {
+                    try {
+                        aiSummary = aiDomainFacadeService.buildMovieSummaryByMovieName(key);
+                    } catch (Exception ex) {
+                        log.warn("根据电影名生成总结失败：movieName={}", key, ex);
+                    }
+                }
+                data.put("aiSummary", aiSummary);
+                Result<Map<String, Object>> result = Result.success(data);
+                movieCommentsCache.put(key, new CacheEntry<>(result, COMMENTS_CACHE_TTL_MS));
+                return result;
+            }
+
+            // 3. 有评论且库中无缓存时才调用大模型（基于评论生成总结）
+            String aiSummary = null;
+            try {
+                aiSummary = aiDomainFacadeService.buildMovieCommentsSummary(key, comments);
+            } catch (Exception ex) {
+                log.warn("电影评论大模型总结失败，仅返回评论列表：movieName={}", key, ex);
+            }
+            data.put("aiSummary", aiSummary);
+
+            if (movie != null && aiSummary != null && !aiSummary.trim().isEmpty()) {
+                try {
+                    movie.setAiCommentsSummary(aiSummary.trim());
+                    movieRepository.save(movie);
+                    log.info("电影 {} 的 AI 评论总结已落库，下次将直接使用数据库，不重复调用 AI", key);
+                } catch (Exception saveEx) {
+                    log.warn("保存电影 AI 评论总结失败：movieName={}", key, saveEx);
+                }
+            }
+
+            Result<Map<String, Object>> result = Result.success(data);
+            movieCommentsCache.put(key, new CacheEntry<>(result, COMMENTS_CACHE_TTL_MS));
+            return result;
+        } catch (Exception e) {
+            log.error("获取电影评论及AI总结失败：movieName={}", key, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取电影评论失败");
+        }
+    }
+
+    /**
      * 获取有评论的电影列表
      */
     public Result<List<MovieNode>> getMoviesWithComments(int page, int size) {
@@ -476,6 +603,121 @@ public class MovieRecommendationService {
         return 0;
     }
 
+    /**
+     * 获取用户喜欢的电影列表（点赞 LIKED），供内容推荐与融合使用
+     */
+    private List<MovieNode> getUserLikedMovies(String username) {
+        try {
+            String cypher = "MATCH (u:User)-[:LIKED]->(m:Movie) WHERE u.name = $name RETURN m";
+            Map<String, Object> params = new HashMap<>();
+            params.put("name", username);
+            Iterable<MovieNode> iter = neo4jSession.query(MovieNode.class, cypher, params);
+            return StreamSupport.stream(iter.spliterator(), false).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.debug("获取用户点赞电影失败: username={}", username, e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 内容推荐：基于用户喜欢的电影的特征（类型、导演、演员、地区）推荐相似电影
+     */
+    public List<MovieNode> contentRecommendByUsername(String username) {
+        List<MovieNode> liked = getUserLikedMovies(username);
+        if (CollectionUtils.isEmpty(liked)) {
+            return getDefaultHighRatingMovies(contentTopN);
+        }
+        Set<Long> likedIds = liked.stream().map(MovieNode::getId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<String> types = new HashSet<>();
+        Set<String> directors = new HashSet<>();
+        Set<String> actors = new HashSet<>();
+        Set<String> regions = new HashSet<>();
+        for (MovieNode m : liked) {
+            if (m.getType() != null && !m.getType().isEmpty()) types.add(m.getType().trim());
+            if (m.getRegion() != null && !m.getRegion().isEmpty()) regions.add(m.getRegion().trim());
+            if (m.getDirectorList() != null) m.getDirectorList().stream().filter(d -> d != null && !d.trim().isEmpty()).forEach(d -> directors.add(d.trim()));
+            if (m.getActorList() != null) m.getActorList().stream().filter(a -> a != null && !a.trim().isEmpty()).forEach(a -> actors.add(a.trim()));
+        }
+        LinkedHashMap<Long, MovieNode> candidates = new LinkedHashMap<>();
+        int need = contentTopN != null ? contentTopN : 20;
+        for (String type : types) {
+            for (MovieNode m : movieRepository.findByTypeOrderByRating(type, need * 2)) {
+                if (m != null && m.getId() != null && !likedIds.contains(m.getId())) candidates.putIfAbsent(m.getId(), m);
+            }
+            if (candidates.size() >= need) break;
+        }
+        if (candidates.size() < need) {
+            for (String director : directors) {
+                for (MovieNode m : movieRepository.findByDirectorName(director)) {
+                    if (m != null && m.getId() != null && !likedIds.contains(m.getId())) candidates.putIfAbsent(m.getId(), m);
+                }
+                if (candidates.size() >= need) break;
+            }
+        }
+        if (candidates.size() < need) {
+            for (String actor : actors) {
+                for (MovieNode m : movieRepository.findByActorName(actor)) {
+                    if (m != null && m.getId() != null && !likedIds.contains(m.getId())) candidates.putIfAbsent(m.getId(), m);
+                }
+                if (candidates.size() >= need) break;
+            }
+        }
+        return candidates.values().stream().limit(need).collect(Collectors.toList());
+    }
+
+    /**
+     * 合并知识图谱三条推荐策略的结果并去重，返回不超过 limit 条
+     */
+    public List<MovieNode> getKgRecommendationsMerged(String username, int limit) {
+        LinkedHashMap<Long, MovieNode> merged = new LinkedHashMap<>();
+        int per = Math.max(1, limit / 3);
+        for (MovieNode m : knowledgeGraphService.recommendMoviesByDirector(username, per)) {
+            if (m != null && m.getId() != null) merged.putIfAbsent(m.getId(), m);
+        }
+        for (MovieNode m : knowledgeGraphService.recommendMoviesByTypeAndRegion(username, per)) {
+            if (m != null && m.getId() != null) merged.putIfAbsent(m.getId(), m);
+        }
+        for (MovieNode m : knowledgeGraphService.recommendMoviesByActorAndDirector(username, per)) {
+            if (m != null && m.getId() != null) merged.putIfAbsent(m.getId(), m);
+        }
+        return merged.values().stream().limit(limit).collect(Collectors.toList());
+    }
+
+    /**
+     * 融合推荐：按配置权重融合协同过滤、内容推荐、知识图谱推荐，返回排序后的 topN
+     */
+    public List<MovieNode> fusedRecommendationByUsername(String username, int topN) {
+        List<MovieNode> cfList = collaborativeFilteringRecommendByUsername(username).getRecommendedMovies();
+        if (cfList == null) cfList = Collections.emptyList();
+        List<MovieNode> contentList = contentRecommendByUsername(username);
+        List<MovieNode> kgList = getKgRecommendationsMerged(username, Math.max(topN, kgTopN != null ? kgTopN : 20));
+        double wCf = cfWeight != null ? cfWeight : 0.4;
+        double wContent = contentWeight != null ? contentWeight : 0.3;
+        double wKg = kgWeight != null ? kgWeight : 0.3;
+        Map<Long, Double> scores = new HashMap<>();
+        int maxLen = Math.max(Math.max(cfList.size(), contentList.size()), kgList.size());
+        if (maxLen == 0) return getDefaultHighRatingMovies(topN);
+        for (int i = 0; i < cfList.size(); i++) {
+            MovieNode m = cfList.get(i);
+            if (m != null && m.getId() != null) scores.merge(m.getId(), wCf * (1.0 - (double) i / maxLen), Double::sum);
+        }
+        for (int i = 0; i < contentList.size(); i++) {
+            MovieNode m = contentList.get(i);
+            if (m != null && m.getId() != null) scores.merge(m.getId(), wContent * (1.0 - (double) i / maxLen), Double::sum);
+        }
+        for (int i = 0; i < kgList.size(); i++) {
+            MovieNode m = kgList.get(i);
+            if (m != null && m.getId() != null) scores.merge(m.getId(), wKg * (1.0 - (double) i / maxLen), Double::sum);
+        }
+        Map<Long, MovieNode> idToMovie = new HashMap<>();
+        Stream.of(cfList, contentList, kgList).flatMap(List::stream).filter(Objects::nonNull).forEach(m -> { if (m.getId() != null) idToMovie.put(m.getId(), m); });
+        return scores.entrySet().stream()
+                .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
+                .limit(topN)
+                .map(e -> idToMovie.get(e.getKey()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
 
     /**
      * 基于用户名的协同过滤推荐（返回完整结果：推荐电影+用户评分电影+相似度）
@@ -525,11 +767,12 @@ public class MovieRecommendationService {
             List<Integer> ratings1 = convertToObjectList(row.get("ratings1"));
             List<Integer> ratings2 = convertToObjectList(row.get("ratings2"));
 
-            // 计算余弦相似度（松化条件检查）
+            // 计算余弦相似度，并计算该相似用户在共同电影上的平均分
             if (similarUserId != null && ratings1 != null && ratings2 != null &&
                     !ratings1.isEmpty() && !ratings2.isEmpty()) {
                 double similarity = calculateCosineSimilarity(ratings1, ratings2);
-                similarityResults.add(new SimilarityResult(similarUserId, similarity));
+                double avgRating = ratings2.stream().mapToInt(Integer::intValue).average().orElse(0);
+                similarityResults.add(new SimilarityResult(similarUserId, similarity, avgRating));
             }
         }
         // 按相似度降序排序
@@ -718,15 +961,31 @@ public class MovieRecommendationService {
         return null;
     }
 
-    public Object getMovieAnalysis() {
-        // 这里可以调用Neo4j的Cypher查询语句来获取电影分析数据
-        /**
-         *
-         * 展示电影评论的情感倾向（正面 / 负面 / 中性，基于 CONTENT 文本分析）；
-         */
-        // TODO：使用coze来接收处理数据
-        String cypher = "MATCH (m:Movie) RETURN m.title, m.director";
-        return null;
+    /**
+     * 电影数据分析：基于 Neo4j 的类型分布、地区分布统计（供前端或 AI 使用）。
+     * 情感倾向分析（基于评论内容）暂未实现，可后续接入 Coze 等。
+     */
+    public List<Map<String, Object>> getMovieAnalysis() {
+        try {
+            List<Map<String, Object>> result = new ArrayList<>();
+            List<Map<String, Object>> typeStats = getMovieRatingsByType();
+            List<Map<String, Object>> regionStats = getMovieRatingsByRegion();
+            Map<String, Object> byType = new HashMap<>();
+            byType.put("dimension", "byType");
+            byType.put("stats", typeStats != null ? typeStats : Collections.emptyList());
+            result.add(byType);
+            Map<String, Object> byRegion = new HashMap<>();
+            byRegion.put("dimension", "byRegion");
+            byRegion.put("stats", regionStats != null ? regionStats : Collections.emptyList());
+            result.add(byRegion);
+            result.add(Collections.singletonMap("message", "情感倾向分析（基于评论内容）暂未实现"));
+            return result;
+        } catch (Exception e) {
+            log.warn("电影分析查询异常", e);
+            List<Map<String, Object>> fallback = new ArrayList<>();
+            fallback.add(Collections.singletonMap("message", "电影分析暂不可用"));
+            return fallback;
+        }
     }
 
     /**

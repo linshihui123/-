@@ -111,15 +111,28 @@ dify.api.key=${DIFY_API_KEY:your-dify-api-key-here}
    ```bash
    mvn spring-boot:run
    ```
-4. 访问系统: `http://localhost:8080`
+4. 访问系统: `http://localhost:8081`（端口以 application.properties 中 server.port 为准）
 
-## API接口
+## API 接口（真实路径）
 
-- `GET /api/movies` - 获取所有电影
-- `GET /api/movies/{id}` - 根据ID获取电影
-- `GET /api/recommendations/user/{userId}` - 获取用户推荐
-- `GET /api/recommendations/knowledge-graph/{movieId}` - 知识图谱推荐
-- `GET /api/ai/recommendations?query={query}` - AI推荐
+### 推荐
+- `GET /recommendation/collaborative-filtering/{userId}` - 协同过滤推荐（返回推荐电影、用户已评分电影、相似用户）
+- **个性化融合推荐** `GET /recommendation/fused?username=xxx&limit=20`  
+  按用户名获取 CF 列表、内容推荐列表、KG 推荐列表，按配置权重（CF 40%、内容 30%、KG 30%）加权排序、去重后取 topN。参数：`username`（必填）、`limit`（可选，默认 20）。
+- `GET /recommendation/ai-recommend-with-comments?limit=8` - 智能推荐（带简介）
+- `GET /recommendation/movie-ratings/{movieName}` - 单部电影评分分布
+- `GET /recommendation/movie-ratings-by-type` - 按类型统计
+- `GET /recommendation/movie-ratings-by-region` - 按地区统计
+- `GET /recommendation/multi-dimensional-ranking` - 多维度榜单
+- `GET /recommendation/movie-analysis` - 电影分析（类型/地区分布；情感分析暂未实现）
+
+### 知识图谱
+- `GET /api/kg/graph-data?movieCount=100&keyword=可选` - 图谱数据（全量或按关键词子图）
+- `GET /api/kg/data?movieCount=10` - 图谱数据（兼容旧路径）
+- `GET /api/kg/stats` - 图谱统计（电影数、关系数、导演数、演员数）
+- `GET /api/kg/recommend/director?username=xxx&limit=10` - KG 推荐（同导演）
+- `GET /api/kg/recommend/type-region?username=xxx&limit=10` - KG 推荐（同类型同地区）
+- `GET /api/kg/recommend/actor-director?username=xxx&limit=10` - KG 推荐（同演员同导演）
 
 ## 知识图谱构建
 
@@ -147,6 +160,14 @@ dify.api.key=${DIFY_API_KEY:your-dify-api-key-here}
 - 内容推荐: 30%
 - 知识图谱: 30%
 
+（权重在 `application.properties` 中通过 `recommend.weight.cf`、`recommend.weight.content`、`recommend.weight.kg` 配置。）
+
+### 融合推荐说明
+
+- **接口**：`GET /recommendation/fused?username=xxx&limit=20`
+- **逻辑**：根据 `username` 分别获取协同过滤推荐列表、内容推荐列表（同类型/同导演/同演员，基于用户点赞电影）、知识图谱推荐列表（同导演 / 同类型同地区 / 同演员同导演 三条策略合并）；对三路结果按配置权重做加权打分（排名越靠前得分越高），合并去重后按总分排序取前 `limit` 条返回。
+- **无行为数据时**：用户无点赞或评分时，内容推荐与 KG 推荐会退回为高分电影等默认结果，融合结果仍可返回。
+
 ## 部署说明
 
 1. 确保Neo4j服务已启动
@@ -170,19 +191,20 @@ dify.api.key=${DIFY_API_KEY:your-dify-api-key-here}
 4. **用户交互** - 评分、搜索、详情查看等交互功能
 
 ### 访问入口
-- **系统入口页**: http://localhost:8080/index-vue.html
-- **Vue版本**: http://localhost:8080/vue-app.html
-- **AngularJS版本**: http://localhost:8080/index.html
+- **系统入口页**: http://localhost:8081/index-vue.html
+- **Vue版本**: http://localhost:8081/vue-app.html
+- **AngularJS版本**: http://localhost:8081/index.html
 
-### API接口测试
-系统启动后，可以测试以下核心接口：
+### API 接口测试
+系统启动后（默认端口 8081），可测试以下核心接口：
 
 | 接口 | 路径 | 描述 |
 |------|------|------|
-| 电影列表 | `GET /api/movie-infos` | 获取所有电影数据 |
-| 知识图谱统计 | `GET /api/knowledge-graph/stats` | 获取图谱统计信息 |
-| AI推荐 | `GET /api/ai/recommendations?userId=test` | 测试AI推荐功能 |
-| 图谱可视化 | `GET /api/knowledge-graph/full` | 获取完整图谱数据 |
+| 电影列表 | `GET /api/movie-infos` 等 | 获取电影数据（以项目实际 Controller 路径为准） |
+| 知识图谱统计 | `GET /api/kg/stats` | 获取图谱统计信息 |
+| 融合推荐 | `GET /recommendation/fused?username=xxx&limit=20` | 协同过滤+内容+KG 融合推荐 |
+| 协同过滤推荐 | `GET /recommendation/collaborative-filtering/{userId}` | 协同过滤推荐 |
+| 图谱数据 | `GET /api/kg/graph-data?movieCount=100` | 获取图谱节点与边数据 |
 
 ### 联调验证步骤
 1. 启动后端服务：`mvn spring-boot:run`

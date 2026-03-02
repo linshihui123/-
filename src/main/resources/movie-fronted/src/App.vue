@@ -98,16 +98,17 @@
           @close="aiPanelVisible = false"
       />
       <el-main>
-        <!-- 用户未登录时直接显示浏览界面 -->
-        <div v-if="!currentUser && !activeTab" class="browse-container">
+        <!-- 未登录时不显示电影列表，仅提示先登录 -->
+        <div v-if="!currentUser && (!activeTab || activeTab === 'browse')" class="browse-container">
           <div class="layout-wrapper">
             <div class="main-content">
-              <MovieBrowse
-                  :movies="currentMovies"
-                  :loading="loading"
-                  :show-title="true"
-                  @movie-click="handleMovieClick"
-              />
+              <el-card shadow="hover" class="login-required-card">
+                <div class="login-required-content">
+                  <i class="el-icon-warning-outline login-required-icon"></i>
+                  <p class="login-required-text">请先登录后查看电影列表</p>
+                  <el-button type="primary" @click="showLoginDialog" size="medium">登录 / 注册</el-button>
+                </div>
+              </el-card>
             </div>
           </div>
         </div>
@@ -168,8 +169,8 @@
           </el-row>
         </div>
 
-        <!-- 浏览页面 -->
-        <div v-if="activeTab === 'browse'" class="browse-container">
+        <!-- 浏览页面（仅登录后显示列表） -->
+        <div v-if="activeTab === 'browse' && currentUser" class="browse-container">
           <div class="layout-wrapper">
             <div class="main-content">
               <MovieBrowse
@@ -333,10 +334,9 @@ export default {
   created() {
     // 尝试从本地存储恢复用户会话
     this.restoreUserSession();
-    // 如果用户未登录，默认显示浏览页面；如果已登录，默认显示首页
-    if (!this.currentUser) {
-      this.activeTab = 'browse';
-      this.handleGetAllMovies({ page: 0, size: 20 });
+    // 未登录时不显示电影列表、不加载电影；已登录时默认显示首页（可点击浏览查看列表）
+    if (this.currentUser) {
+      this.activeTab = null;
     }
   },
   methods: {
@@ -572,6 +572,26 @@ export default {
 .browse-container {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.login-required-card {
+  text-align: center;
+  padding: 48px 24px;
+}
+.login-required-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.login-required-icon {
+  font-size: 48px;
+  color: #e6a23c;
+}
+.login-required-text {
+  margin: 0;
+  font-size: 16px;
+  color: #606266;
 }
 
 .recommend-sidebar {

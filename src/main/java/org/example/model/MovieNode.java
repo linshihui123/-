@@ -44,6 +44,10 @@ public class MovieNode {
     @Property(name = "characters")
     private String characters;
 
+    /** AI 生成的评论总结（整体评价倾向与看点/槽点），落库后下次直接使用，避免重复调用大模型 */
+    @Property(name = "ai_comments_summary")
+    private String aiCommentsSummary;
+
     // 关系定义（保留原逻辑）
     @Relationship(type = "DIRECTED_BY", direction = Relationship.OUTGOING)
     private List<DirectorNode> directors;
@@ -56,7 +60,7 @@ public class MovieNode {
 
     // 解析导演列表（正确转义|）
     public List<String> getDirectorList() {
-        return actorString != null && !actorString.isEmpty()
+        return directorString != null && !directorString.isEmpty()
                 ? Arrays.asList(directorString.split("\\|"))
                 : null;
     }

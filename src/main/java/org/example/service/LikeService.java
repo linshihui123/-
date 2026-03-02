@@ -117,20 +117,32 @@ public class LikeService {
     }
 
     /**
-     * 获取有点赞记录的用户名列表（用于知识图谱推荐时的用户下拉）
+     * 获取有点赞记录的用户列表（Neo4j User 节点使用 name 属性，非 username）
      */
     public List<String> getUsernamesWithLikes() {
         try {
-            String cypher = "MATCH (u:User)-[:LIKED]->(m:Movie) RETURN DISTINCT u.username AS username ORDER BY u.username";
+            String cypher = "MATCH (u:User)-[:LIKED]->(m:Movie) RETURN DISTINCT u.name AS name ORDER BY u.name";
             Map<String, Object> params = new HashMap<>();
             Iterable<Map<String, Object>> result = neo4jSession.query(cypher, params);
             List<String> usernames = new ArrayList<>();
             for (Map<String, Object> row : result) {
-                Object name = row.get("username");
+                Object name = row.get("name");
+                if (name == null) {
+                    name = row.get("u.name");
+                }
+                if (name == null && !row.isEmpty()) {
+                    for (Object v : row.values()) {
+                        if (v != null && !v.toString().trim().isEmpty()) {
+                            name = v;
+                            break;
+                        }
+                    }
+                }
                 if (name != null && !name.toString().trim().isEmpty()) {
                     usernames.add(name.toString().trim());
                 }
             }
+            log.info("获取有点赞记录的用户列表: 共 {} 人", usernames.size());
             return usernames;
         } catch (Exception e) {
             log.error("获取有点赞记录的用户列表失败", e);
@@ -143,9 +155,9 @@ public class LikeService {
      */
     public List<MovieNode> getUserLikedMovies(String username) {
         try {
-            String cypher = "MATCH (u:User)-[:LIKED]->(m:Movie) WHERE u.username = $username RETURN m";
+            String cypher = "MATCH (u:User)-[:LIKED]->(m:Movie) WHERE u.name = $name RETURN m";
             Map<String, Object> params = new HashMap<>();
-            params.put("username", username);
+            params.put("name", username);
             
             Iterable<MovieNode> result = neo4jSession.query(MovieNode.class, cypher, params);
             List<MovieNode> likedMovies = new ArrayList<>();

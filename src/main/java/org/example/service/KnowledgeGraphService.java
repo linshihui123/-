@@ -148,58 +148,61 @@ public class KnowledgeGraphService {
     }
 
     /**
-     * 基于用户点赞的电影推荐：喜欢的电影 → 同导演 → 其他电影
+     * 获取用户已评分的电影（基于 Comment 的 comment_rating），用于基于导演/类型/演员的推荐
+     */
+    private List<MovieNode> getUserRatedMoviesByUsername(String username) {
+        try {
+            String cypher = "MATCH (c:Comment), (m:Movie) WHERE c.creator = $username AND c.movie_id = m.id AND c.comment_rating IS NOT NULL RETURN m";
+            Map<String, Object> params = new HashMap<>();
+            params.put("username", username);
+            Iterable<MovieNode> it = neo4jSession.query(MovieNode.class, cypher, params);
+            List<MovieNode> list = new ArrayList<>();
+            it.forEach(list::add);
+            return list;
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 基于用户评分的电影推荐：先取用户评分的电影，再按同导演推荐其他电影（排除已评分的）
      */
     public List<MovieNode> recommendMoviesByDirector(String username, int limit) {
         try {
-            // 1. 获取用户喜欢的电影
-            String likedMoviesCypher = "MATCH (u:User)-[:LIKED]->(m:Movie) WHERE u.username = $username RETURN m";
-            Map<String, Object> params = new HashMap<>();
-            params.put("username", username);
-            Iterable<MovieNode> likedMovies = neo4jSession.query(MovieNode.class, likedMoviesCypher, params);
-            List<MovieNode> likedMovieList = new ArrayList<>();
-            likedMovies.forEach(likedMovieList::add);
-
-            if (likedMovieList.isEmpty()) {
+            // 1. 获取用户已评分的电影（Comment 评论评分，非点赞）
+            List<MovieNode> ratedMovieList = getUserRatedMoviesByUsername(username);
+            if (ratedMovieList.isEmpty()) {
                 return Collections.emptyList();
             }
 
             // 2. 提取这些电影的导演
             Set<String> directors = new HashSet<>();
-            for (MovieNode movie : likedMovieList) {
+            for (MovieNode movie : ratedMovieList) {
                 if (movie.getDirectorList() != null) {
                     directors.addAll(movie.getDirectorList());
                 }
             }
-
             if (directors.isEmpty()) {
                 return Collections.emptyList();
             }
 
-            // 3. 查找这些导演的其他电影（排除用户已喜欢的）
+            // 3. 查找这些导演的其他电影（排除用户已评分的）
             List<MovieNode> recommendedMovies = new ArrayList<>();
-            Set<Long> likedMovieIds = likedMovieList.stream().map(MovieNode::getId).collect(Collectors.toSet());
+            Set<Long> ratedMovieIds = ratedMovieList.stream().map(MovieNode::getId).filter(Objects::nonNull).collect(Collectors.toSet());
 
             for (String director : directors) {
                 if (director == null || director.trim().isEmpty()) continue;
-                
                 String directorMoviesCypher = "MATCH (m:Movie) WHERE m.director IS NOT NULL AND toLower(m.director) CONTAINS toLower($director) RETURN m";
                 Map<String, Object> directorParams = new HashMap<>();
                 directorParams.put("director", director);
                 Iterable<MovieNode> directorMovies = neo4jSession.query(MovieNode.class, directorMoviesCypher, directorParams);
-                
                 for (MovieNode movie : directorMovies) {
-                    if (movie != null && !likedMovieIds.contains(movie.getId())) {
+                    if (movie != null && movie.getId() != null && !ratedMovieIds.contains(movie.getId())) {
                         recommendedMovies.add(movie);
                     }
                 }
             }
-
-            // 去重并限制数量
-            return recommendedMovies.stream()
-                    .distinct()
-                    .limit(limit)
-                    .collect(Collectors.toList());
+            return recommendedMovies.stream().distinct().limit(limit).collect(Collectors.toList());
         } catch (Exception e) {
             e.printStackTrace();
             return Collections.emptyList();
@@ -212,9 +215,9 @@ public class KnowledgeGraphService {
     public List<MovieNode> recommendMoviesByTypeAndRegion(String username, int limit) {
         try {
             // 1. 获取用户喜欢的电影
-            String likedMoviesCypher = "MATCH (u:User)-[:LIKED]->(m:Movie) WHERE u.username = $username RETURN m";
+            String likedMoviesCypher = "MATCH (u:User)-[:LIKED]->(m:Movie) WHERE u.name = $name RETURN m";
             Map<String, Object> params = new HashMap<>();
-            params.put("username", username);
+            params.put("name", username);
             Iterable<MovieNode> likedMovies = neo4jSession.query(MovieNode.class, likedMoviesCypher, params);
             List<MovieNode> likedMovieList = new ArrayList<>();
             likedMovies.forEach(likedMovieList::add);
@@ -276,9 +279,9 @@ public class KnowledgeGraphService {
     public List<MovieNode> recommendMoviesByActorAndDirector(String username, int limit) {
         try {
             // 1. 获取用户喜欢的电影
-            String likedMoviesCypher = "MATCH (u:User)-[:LIKED]->(m:Movie) WHERE u.username = $username RETURN m";
+            String likedMoviesCypher = "MATCH (u:User)-[:LIKED]->(m:Movie) WHERE u.name = $name RETURN m";
             Map<String, Object> params = new HashMap<>();
-            params.put("username", username);
+            params.put("name", username);
             Iterable<MovieNode> likedMovies = neo4jSession.query(MovieNode.class, likedMoviesCypher, params);
             List<MovieNode> likedMovieList = new ArrayList<>();
             likedMovies.forEach(likedMovieList::add);
@@ -355,8 +358,12 @@ public class KnowledgeGraphService {
                 break;
             }
             stats.put("relations", relations);
-            stats.put("directors", 0);
-            stats.put("actors", 0);
+            // 导演数：从 Movie.director 属性（| 分隔）去重统计
+            int directorCount = countDistinctPipeSeparated("director");
+            stats.put("directors", directorCount);
+            // 演员数：从 Movie.actor 属性（| 分隔）去重统计
+            int actorCount = countDistinctPipeSeparated("actor");
+            stats.put("actors", actorCount);
         } catch (Exception e) {
             stats.put("movies", 0);
             stats.put("directors", 0);
@@ -364,5 +371,24 @@ public class KnowledgeGraphService {
             stats.put("relations", 0);
         }
         return stats;
+    }
+
+    /**
+     * 统计 Movie 节点某属性中 | 分隔的去重数量（用于 director/actor）
+     */
+    private int countDistinctPipeSeparated(String propertyName) {
+        try {
+            String cypher = "MATCH (m:Movie) WHERE m." + propertyName + " IS NOT NULL AND size(m." + propertyName + ") > 0 " +
+                    "UNWIND split(m." + propertyName + ", '|') AS part " +
+                    "WITH trim(part) AS name WHERE name <> '' " +
+                    "RETURN count(DISTINCT name) AS cnt";
+            Iterable<Map<String, Object>> result = neo4jSession.query(cypher, Collections.emptyMap());
+            for (Map<String, Object> row : result) {
+                Object cnt = row.get("cnt");
+                if (cnt instanceof Number) return ((Number) cnt).intValue();
+                break;
+            }
+        } catch (Exception ignored) { }
+        return 0;
     }
 }

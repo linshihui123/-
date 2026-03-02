@@ -42,9 +42,11 @@
           <el-button type="primary" @click="fetchMovieComments" :disabled="!searchMovieName">查询评论</el-button>
         </div>
 
-        <div v-if="movieCommentsData && movieCommentsData.length > 0" class="comments-container">
-          <h3>{{ searchMovieName }} 的用户评论</h3>
-          <div class="comments-list">
+        <!-- 有评论或有 AI 总结时展示（无评论时也会调用大模型根据电影名生成总结并显示） -->
+        <div v-if="searchMovieName && !loadingMovieComments && ((movieCommentsData && movieCommentsData.length > 0) || movieCommentsAiSummary)" class="comments-container">
+          <h3>{{ searchMovieName }}{{ (movieCommentsData && movieCommentsData.length > 0) ? ' 的用户评论' : ' 的电影总结' }}</h3>
+          <el-alert v-if="movieCommentsAiSummary" :title="movieCommentsAiSummary" type="success" :closable="false" show-icon class="ai-summary-alert"></el-alert>
+          <div v-if="movieCommentsData && movieCommentsData.length > 0" class="comments-list">
             <el-card v-for="(comment, index) in movieCommentsData" :key="index" class="comment-card">
               <div class="comment-header">
                 <span class="comment-user"><i class="el-icon-user"></i> {{ comment.creator || '匿名用户' }}</span>
@@ -64,6 +66,9 @@
               </div>
             </el-card>
           </div>
+          <div v-else class="no-comments-tip">
+            <p>该电影暂无用户评论，以上为根据电影信息生成的 AI 总结。</p>
+          </div>
         </div>
 
         <div v-else-if="!searchMovieName" class="placeholder-message">
@@ -71,11 +76,12 @@
         </div>
 
         <div v-else-if="loadingMovieComments" class="loading-container">
-          <el-spin></el-spin>
+          <i class="el-icon-loading" style="font-size: 32px;"></i>
+          <span style="margin-left: 8px;">正在加载评论与AI总结，请稍候...</span>
         </div>
 
         <div v-else class="no-data-message">
-          <el-empty description="暂无用户评论"></el-empty>
+          <el-empty description="暂无用户评论与总结"></el-empty>
         </div>
       </div>
 
@@ -107,7 +113,8 @@
         </div>
 
         <div v-else-if="loadingTypeStats" class="loading-container">
-          <el-spin></el-spin>
+          <i class="el-icon-loading" style="font-size: 32px;"></i>
+          <span style="margin-left: 8px;">加载中...</span>
         </div>
 
         <div v-else class="no-data-message">
@@ -120,6 +127,7 @@
 
 <script>
 // 不直接导入echarts，而是动态加载
+import axios from 'axios';
 import { getMovieCommentsByMovieName, getMovieRatingsByType, getMovieRatingsByRegion } from '../api/recommend';
 import request from '@/utils/request';
 
@@ -131,11 +139,14 @@ export default {
       statsSubTab: 'type', // 在type和region之间切换
       searchMovieName: '',
       movieCommentsData: null,
+      movieCommentsAiSummary: '',
       typeStatsData: null,
       regionStatsData: null,
-      movieList: [], // 存储有评论的电影列表
+      movieList: [], // 存储电影列表
       loadingMovieList: false,
       loadingMovieComments: false,
+      commentRequestCancel: null,
+      commentRequestId: 0, // 用于判断是否仍是当前请求，避免取消后误关 loading
       loadingTypeStats: false,
       chartMovie: null,
       chartType: null
@@ -170,11 +181,22 @@ export default {
       });
     },
 
+    cleanupCharts() {
+      if (this.chartType) {
+        try { this.chartType.dispose(); } catch (e) {}
+        this.chartType = null;
+      }
+      if (this.chartMovie) {
+        try { this.chartMovie.dispose(); } catch (e) {}
+        this.chartMovie = null;
+      }
+    },
+
     switchTab(tab) {
       this.activeTab = tab;
       // 切换标签页时清理图表实例
       this.cleanupCharts();
-      
+
       // 当切换到类型/地区统计标签页时，确保图表被渲染
       if (tab === 'type') {
         this.$nextTick(() => {
@@ -198,29 +220,26 @@ export default {
       });
     },
 
-    // 获取有评论的电影列表
+    // 获取全部电影列表（供评论查询下拉框使用）
     async fetchMoviesWithComments() {
       this.loadingMovieList = true;
+      this.movieList = [];
       try {
         const response = await request({
-          url: '/movie/movies-with-comments',
+          url: '/movie/list',
           method: 'get',
-          params: {
-            page: 0,
-            size: 100
-          }
+          params: { page: 0, size: 5000 }
         });
-        
-        if (response && response.data) {
-          this.movieList = response.data;
-          console.log('获取到有评论的电影列表:', this.movieList.length, '部');
+        const list = (response && response.data != null && Array.isArray(response.data)) ? response.data : [];
+        this.movieList = list;
+        if (list.length > 0) {
+          console.log('获取到全部电影列表:', list.length, '部');
         } else {
-          this.movieList = [];
-          console.warn('未获取到电影列表数据');
+          console.warn('电影列表为空');
         }
       } catch (error) {
         console.error('获取电影列表失败:', error);
-        this.$message.error('获取电影列表失败');
+        this.$message.error(error && error.message ? error.message : '获取电影列表失败');
         this.movieList = [];
       } finally {
         this.loadingMovieList = false;
@@ -240,22 +259,44 @@ export default {
         return;
       }
 
+      // 取消上一次未完成的请求，避免切换电影时显示旧数据或一直 loading
+      if (this.commentRequestCancel) {
+        this.commentRequestCancel();
+        this.commentRequestCancel = null;
+      }
+
+      const currentMovie = this.searchMovieName.trim();
+      this.commentRequestId += 1;
+      const requestId = this.commentRequestId;
+      const cancelToken = new axios.CancelToken(c => { this.commentRequestCancel = c; });
+
       this.loadingMovieComments = true;
+      this.movieCommentsAiSummary = '';
+      this.movieCommentsData = null;
       try {
-        const response = await getMovieCommentsByMovieName(this.searchMovieName.trim());
-        if (response && response.data) {
-          this.movieCommentsData = response.data;
-          this.$message.success(`找到 ${this.movieCommentsData.length} 条用户评论`);
+        const response = await getMovieCommentsByMovieName(currentMovie, { cancelToken });
+        if (requestId !== this.commentRequestId) return;
+        const data = (response && response.data) ? response.data : null;
+        if (data) {
+          const list = Array.isArray(data) ? data : (data.comments || []);
+          this.movieCommentsData = list;
+          this.movieCommentsAiSummary = (data.aiSummary != null && data.aiSummary !== '') ? data.aiSummary : '';
+          this.$message.success(`找到 ${this.movieCommentsData.length} 条用户评论` + (this.movieCommentsAiSummary ? '，已生成AI总结' : ''));
         } else {
           this.movieCommentsData = [];
           this.$message.info('未找到该电影的用户评论');
         }
       } catch (error) {
+        if (axios.isCancel(error)) return;
+        if (requestId !== this.commentRequestId) return;
         console.error('获取电影评论数据失败:', error);
         this.$message.error('获取电影评论数据失败');
         this.movieCommentsData = [];
       } finally {
-        this.loadingMovieComments = false;
+        if (requestId === this.commentRequestId) {
+          this.loadingMovieComments = false;
+        }
+        this.commentRequestCancel = null;
       }
     },
 
@@ -511,6 +552,17 @@ export default {
 .no-data-message {
   text-align: center;
   padding: 40px 0;
+}
+
+.no-comments-tip {
+  margin-top: 16px;
+  padding: 12px 16px;
+  color: #909399;
+  font-size: 14px;
+}
+
+.ai-summary-alert {
+  margin-bottom: 16px;
 }
 
 .loading-container {

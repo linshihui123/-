@@ -179,6 +179,116 @@ public class AiDomainFacadeService {
     }
 
     /**
+     * 使用大模型对电影评论做简短总结（整体评价倾向与主要看点/槽点）
+     * @param movieName 电影名称
+     * @param comments 评论列表（每项含 creator、comment_rating、content 等）
+     * @return 1～2 句话的总结，失败或无评论时返回 null
+     */
+    public String buildMovieCommentsSummary(String movieName, List<Map<String, Object>> comments) {
+        if (movieName == null || movieName.trim().isEmpty() || CollectionUtils.isEmpty(comments)) {
+            return null;
+        }
+        try {
+            StringBuilder sb = new StringBuilder();
+            int max = Math.min(comments.size(), 15);
+            for (int i = 0; i < max; i++) {
+                Map<String, Object> c = comments.get(i);
+                String creator = c.get("creator") != null ? c.get("creator").toString() : "用户";
+                Object rating = c.get("comment_rating");
+                String ratingStr = rating != null ? rating + "分" : "";
+                String content = c.get("content") != null ? c.get("content").toString() : "";
+                if (content.length() > 80) content = content.substring(0, 80) + "...";
+                sb.append("· ").append(creator).append("：").append(ratingStr);
+                if (!content.isEmpty()) sb.append(" - ").append(content);
+                sb.append("\n");
+            }
+            if (comments.size() > 15) sb.append("... 共").append(comments.size()).append("条评论\n");
+            String prompt = "请根据以下电影《" + movieName.trim() + "》的观众评论，用1～2句话总结：①观众整体评价倾向（正面/中性/负面）；②主要提到的看点或槽点。只输出总结，不要标题和解释。\n\n" + sb;
+            List<ArkIntegrationService.ChatMessage> messages = Collections.singletonList(
+                    new ArkIntegrationService.ChatMessage("user", prompt));
+            String summary = arkIntegrationService.chat(messages);
+            if (summary != null && !summary.trim().isEmpty() && !summary.startsWith("抱歉")) {
+                return summary.trim();
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("大模型评论总结失败：movieName={}", movieName, e);
+            return null;
+        }
+    }
+
+    /**
+     * 仅根据电影名调用大模型生成 1～2 句话总结（无电影节点或无评论时使用）。
+     */
+    public String buildMovieSummaryByMovieName(String movieName) {
+        if (movieName == null || movieName.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            String name = movieName.trim();
+            String prompt = "请仅根据电影名《" + name + "》，用1～2句话写一段简短总结（题材、风格或大众印象），只输出总结，不要标题和解释。";
+            List<ArkIntegrationService.ChatMessage> messages = Collections.singletonList(
+                    new ArkIntegrationService.ChatMessage("user", prompt));
+            String summary = arkIntegrationService.chat(messages);
+            if (summary != null && !summary.trim().isEmpty() && !summary.startsWith("抱歉")) {
+                return summary.trim();
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("根据电影名生成总结失败：movieName={}", movieName, e);
+            return null;
+        }
+    }
+
+    /**
+     * 根据电影元数据（无评论时）由大模型生成 1～2 句话的电影总结，用于展示并落库。
+     * @param movie 电影节点（含 name、type、region、director、actor、instruction 等）
+     * @return 总结文本，失败时返回 null
+     */
+    public String buildMovieSummaryFromMetadata(MovieNode movie) {
+        if (movie == null) {
+            return null;
+        }
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("电影：").append(movie.getMovieName() != null ? movie.getMovieName() : "未知").append("\n");
+            if (movie.getType() != null && !movie.getType().isEmpty()) {
+                sb.append("类型：").append(movie.getType()).append("\n");
+            }
+            if (movie.getRegion() != null && !movie.getRegion().isEmpty()) {
+                sb.append("地区：").append(movie.getRegion()).append("\n");
+            }
+            if (movie.getDirectorString() != null && !movie.getDirectorString().isEmpty()) {
+                sb.append("导演：").append(movie.getDirectorString().replace("|", "、")).append("\n");
+            }
+            if (movie.getActorString() != null && !movie.getActorString().isEmpty()) {
+                String actor = movie.getActorString();
+                if (actor.length() > 100) actor = actor.substring(0, 100) + "...";
+                sb.append("演员：").append(actor.replace("|", "、")).append("\n");
+            }
+            if (movie.getMovieRating() != null) {
+                sb.append("评分：").append(String.format("%.1f", movie.getMovieRating())).append("分\n");
+            }
+            if (movie.getInstruction() != null && !movie.getInstruction().isEmpty()) {
+                String intro = movie.getInstruction();
+                if (intro.length() > 300) intro = intro.substring(0, 300) + "...";
+                sb.append("简介：").append(intro);
+            }
+            String prompt = "请根据以下电影信息，用1～2句话写一段简短总结（题材、亮点或风格），只输出总结，不要标题和解释。\n\n" + sb;
+            List<ArkIntegrationService.ChatMessage> messages = Collections.singletonList(
+                    new ArkIntegrationService.ChatMessage("user", prompt));
+            String summary = arkIntegrationService.chat(messages);
+            if (summary != null && !summary.trim().isEmpty() && !summary.startsWith("抱歉")) {
+                return summary.trim();
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("根据电影元数据生成总结失败：movieName={}", movie.getMovieName(), e);
+            return null;
+        }
+    }
+
+    /**
      * 构建电影信息答案
      * @param movieName 电影名称
      * @return 格式化的电影信息文本
@@ -387,8 +497,8 @@ public class AiDomainFacadeService {
         if (intro != null && !intro.trim().isEmpty()) return;
         try {
             String prompt = "请为电影《" + name + "》写一段50-150字的简介，风格随机。只输出简介正文，不要标题和引号。";
-            String generated = arkIntegrationService.chatRaw(
-                    Collections.singletonList(new ArkIntegrationService.ChatMessage("user", prompt)), null);
+            String generated = arkIntegrationService.chat(
+                    Collections.singletonList(new ArkIntegrationService.ChatMessage("user", prompt)));
             if (generated != null && !generated.trim().isEmpty() && !generated.startsWith("抱歉")) {
                 String trimmed = generated.trim();
                 if (trimmed.length() > 500) trimmed = trimmed.substring(0, 500);

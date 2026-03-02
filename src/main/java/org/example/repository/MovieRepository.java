@@ -21,6 +21,10 @@ public interface MovieRepository extends Neo4jRepository<MovieNode, Long> {
     // 根据电影名称搜索（模糊匹配）
     @Query("MATCH (m:Movie) WHERE toLower(m.name) CONTAINS toLower($keyword) RETURN m")
     List<MovieNode> findByMovieNameContaining(@Param("keyword") String keyword);
+
+    /** 按电影名称精确匹配（用于读取/更新 AI 评论总结缓存） */
+    @Query("MATCH (m:Movie) WHERE m.name = $movieName RETURN m LIMIT 1")
+    List<MovieNode> findByMovieNameExact(@Param("movieName") String movieName);
     
     // 根据类型查找电影
     List<MovieNode> findByType(String type);

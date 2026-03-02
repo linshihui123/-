@@ -16,6 +16,15 @@ export function getCollaborativeFilteringRecommend(userId) {
     })
 }
 
+// 融合推荐（协同过滤 + 内容推荐 + 知识图谱，按权重融合）
+export function getFusedRecommend(username, limit = 20) {
+    return request({
+        url: '/recommendation/fused',
+        method: 'get',
+        params: { username, limit }
+    })
+}
+
 // 获取所有评论创建者
 export function getAllCommentCreators() {
     return request({
@@ -48,11 +57,14 @@ export function getMovieRatingsByRegion() {
     })
 }
 
-// 获取指定电影的评论记录（根据电影名称）
-export function getMovieCommentsByMovieName(movieName) {
+// 获取指定电影的评论记录及 AI 总结（根据电影名称）。首次请求可能调用大模型，超时设为 60 秒；有缓存时响应较快
+// config 可选，如 { cancelToken } 用于切换电影时取消上一次请求
+export function getMovieCommentsByMovieName(movieName, config = {}) {
     return request({
         url: `/recommendation/movie-comments?movieName=${encodeURIComponent(movieName)}`,
-        method: 'get'
+        method: 'get',
+        timeout: 60000,
+        ...config
     })
 }
 

@@ -11,13 +11,30 @@
       <div class="control-left">
         <el-form :inline="true" class="control-form">
           <el-form-item label="选择用户">
-            <el-select v-model="selectedUserId" placeholder="请选择用户" @change="loadRecommendations">
-              <el-option v-for="item in userList" :key="item.value" :label="item.label" :value="item.value"></el-option>
-            </el-select>
+            <div class="user-select-with-refresh">
+              <el-select v-model="selectedUserId" placeholder="请选择用户" @change="loadRecommendations">
+                <el-option
+                  v-for="item in userList"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+              <el-button
+                class="user-refresh-btn"
+                icon="el-icon-refresh"
+                circle
+                size="mini"
+                :disabled="!allUserNames || allUserNames.length === 0"
+                @click="refreshRandomUsers"
+                title="换一批用户"
+              ></el-button>
+            </div>
           </el-form-item>
           <el-form-item label="推荐类型">
             <el-select v-model="recommendationType" placeholder="选择推荐类型" @change="onRecommendationTypeChange">
               <el-option value="collaborative" label="协同过滤推荐"></el-option>
+              <el-option value="fused" label="融合推荐"></el-option>
               <el-option value="director" label="基于导演推荐"></el-option>
               <el-option value="type-region" label="基于类型和地区推荐"></el-option>
               <el-option value="actor-director" label="基于演员和导演推荐"></el-option>
@@ -59,22 +76,24 @@
 
           <!-- 选项卡内容 -->
           <div class="tab-content">
-            <!-- 我的评分记录模块 -->
+            <!-- 我的评分记录模块：展示具体评分（X分）+ 星级 -->
             <div v-if="activeTab === 'rated'">
               <div class="rated-movies-list" v-if="userRatedMovies.length > 0">
                 <div class="rated-movie-item" v-for="(item, idx) in userRatedMovies" :key="idx">
                   <span class="movie-name">{{ item.movie.movieName || '未知电影' }}</span>
-                  <el-rate v-model="item.rating" disabled max="5" class="movie-rating"></el-rate>
+                  <span class="rating-score">{{ (item.rating != null ? item.rating : 0) }}分</span>
+                  <el-rate :value="item.rating != null ? item.rating : 0" disabled max="5" class="movie-rating"></el-rate>
                 </div>
               </div>
               <p class="empty-tip" v-else>暂无评分记录</p>
             </div>
 
-            <!-- 相似用户匹配度模块 -->
+            <!-- 相似用户匹配度模块：展示相似用户 + 匹配度 + 该用户共同电影上的平均评分 -->
             <div v-if="activeTab === 'similar'">
               <div class="similar-users-list" v-if="similarityResults.length > 0">
                 <div class="similar-user-item" v-for="(item, idx) in similarityResults" :key="idx">
                   <span class="user-id">{{ item.userId }}</span>
+                  <span class="avg-rating" v-if="item.avgRating != null">平均 {{ item.avgRating.toFixed(1) }} 分</span>
                   <div class="similarity-wrap">
                     <span class="percent">{{ (item.similarity * 100).toFixed(1) }}%</span>
                     <el-progress :percentage="item.similarity * 100" :show-text="false" width="100px"></el-progress>
@@ -84,7 +103,7 @@
               <p class="empty-tip" v-else>暂无相似用户</p>
             </div>
 
-            <!-- 我的点赞电影模块 -->
+            <!-- 我的点赞电影模块（数据来自 Neo4j LIKED 关系，需该用户存在点赞记录） -->
             <div v-if="activeTab === 'liked'">
               <div class="liked-movies-list" v-if="userLikedMovies.length > 0">
                 <div class="liked-movie-item" v-for="(movie, idx) in userLikedMovies" :key="idx">
@@ -92,7 +111,9 @@
                   <el-button type="text" size="small" @click="handleMovieClick(movie)">查看详情</el-button>
                 </div>
               </div>
-              <p class="empty-tip" v-else>暂无点赞记录</p>
+              <p class="empty-tip" v-else>
+                暂无点赞记录。若选择的是「协同过滤」用户，请切换为「融合推荐」或下方 KG 推荐类型，从「有点赞记录的用户」中选择用户查看。
+              </p>
             </div>
           </div>
         </el-card>
@@ -109,6 +130,7 @@
 import MovieList from './MovieList.vue';
 import { 
   getCollaborativeFilteringRecommend, 
+  getFusedRecommend,
   getAllCommentCreators,
   getRecommendMoviesByDirector,
   getRecommendMoviesByTypeAndRegion,
@@ -127,7 +149,8 @@ export default {
       movies: [], // 推荐电影列表
       loading: false, // 全局加载状态
       selectedUserId: '', // 当前选中的用户ID
-      userList: [], // 下拉选择的用户列表
+      userList: [], // 下拉选择的用户列表（当前随机 50 条）
+      allUserNames: [], // 后端返回的全部用户名称列表，用于随机抽取
       userRatedMovies: [], // 接口返回：用户已评分电影
       similarityResults: [], // 接口返回：相似用户及匹配度
       userLikedMovies: [], // 用户点赞的电影
@@ -144,32 +167,39 @@ export default {
     }
   },
   methods: {
-    // 根据推荐类型加载用户列表：协同过滤用评论用户，知识图谱推荐用有点赞记录的用户
+    // 根据推荐类型加载用户列表：协同过滤用评论用户（并合并有点赞的用户，便于「我的点赞电影」有数据）
     async loadUserList() {
-      const isKgType = ['director', 'type-region', 'actor-director'].indexOf(this.recommendationType) !== -1;
+      const isKgType = ['fused', 'director', 'type-region', 'actor-director'].indexOf(this.recommendationType) !== -1;
       try {
         if (isKgType) {
           const res = await getUsersWithLikes();
           const list = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
-          this.userList = (list || []).map(name => ({ value: name, label: name }));
+          this.allUserNames = list || [];
+          this.applyRandomUserList();
           if (this.userList.length === 0) {
             this.$message.warning('暂无有点赞记录的用户，请先使用「生成点赞记录」或选择协同过滤推荐');
           }
         } else {
           const response = await getAllCommentCreators();
+          let creators = [];
           if (response && response.data) {
             if (response.data.code === 200 && response.data.data) {
-              this.userList = response.data.data.map(creator => ({ value: creator, label: creator }));
+              creators = response.data.data || [];
             } else if (Array.isArray(response.data)) {
-              this.userList = response.data.map(creator => ({ value: creator, label: creator }));
-            } else {
-              this.userList = [{ value: 'default', label: '默认用户' }];
-              this.selectedUserId = 'default';
+              creators = response.data;
             }
-          } else {
-            this.userList = [{ value: 'default', label: '默认用户' }];
-            this.selectedUserId = 'default';
           }
+          let likeList = [];
+          try {
+            const likeRes = await getUsersWithLikes();
+            likeList = (likeRes && likeRes.data) ? likeRes.data : (Array.isArray(likeRes) ? likeRes : []);
+            likeList = likeList || [];
+          } catch (e) { /* 忽略，仅用评论用户 */ }
+          const likeSet = new Set(likeList);
+          // 优先显示已点赞的用户，再显示仅有评论无点赞的用户
+          const names = [...likeList, ...creators.filter(c => !likeSet.has(c))];
+          this.allUserNames = names;
+          this.applyRandomUserList();
         }
       } catch (error) {
         console.error('获取用户列表失败:', error);
@@ -178,16 +208,69 @@ export default {
       }
     },
 
-    // 推荐类型切换：先按类型加载对应用户列表（点赞用户 / 评论用户），再拉推荐
-    async onRecommendationTypeChange() {
-      await this.loadUserList();
-      if (this.userList.length > 0) {
-        this.selectedUserId = this.userList[0].value;
-        await this.loadRecommendations();
+    // 从 allUserNames 中随机抽取最多 50 个用户作为下拉选项，优先保留当前已选用户
+    applyRandomUserList() {
+      const source = this.allUserNames || [];
+      const maxCount = 50;
+      if (!source.length) {
+        this.userList = [];
+        this.selectedUserId = '';
+        return;
+      }
+      const unique = Array.from(new Set(source));
+      const current = this.selectedUserId;
+      let pickedNames = [];
+
+      // 先把当前选中的用户固定加入结果（如果存在于全集中）
+      if (current && unique.includes(current)) {
+        pickedNames.push(current);
+      }
+
+      const remainCount = maxCount - pickedNames.length;
+      let pool = unique.filter(name => name !== current);
+      if (pool.length <= remainCount) {
+        pickedNames = pickedNames.concat(pool);
       } else {
+        const indices = new Set();
+        while (indices.size < remainCount) {
+          indices.add(Math.floor(Math.random() * pool.length));
+        }
+        pickedNames = pickedNames.concat(Array.from(indices).map(i => pool[i]));
+      }
+
+      this.userList = pickedNames.map(name => ({ value: name, label: name }));
+      if (!this.selectedUserId || !pickedNames.includes(this.selectedUserId)) {
+        this.selectedUserId = this.userList[0].value;
+      }
+    },
+
+    // 刷新按钮：重新从全部用户中随机抽取 50 条
+    refreshRandomUsers() {
+      this.applyRandomUserList();
+    },
+
+    // 推荐类型切换：只刷新推荐类型和用户列表，不主动改动当前已选用户
+    async onRecommendationTypeChange() {
+      const oldUser = this.selectedUserId;
+      await this.loadUserList();
+      // 如果原来有选中的用户，并且还在新列表中，则保持不变；否则仅在没有选中用户时兜底选第一个
+      const hasOld =
+        oldUser &&
+        this.userList &&
+        this.userList.some(item => item.value === oldUser);
+      if (!this.selectedUserId && this.userList.length > 0) {
+        this.selectedUserId = this.userList[0].value;
+      } else if (oldUser && hasOld) {
+        this.selectedUserId = oldUser;
+      }
+
+      if (!this.selectedUserId) {
         this.movies = [];
         this.userLikedMovies = [];
+        return;
       }
+
+      await this.loadRecommendations();
     },
 
     // 获取推荐统计标题
@@ -196,6 +279,9 @@ export default {
       switch (this.recommendationType) {
         case 'collaborative':
           title += `评分，为您推荐了 ${this.movies.length} 部电影`;
+          break;
+        case 'fused':
+          title += `融合推荐（CF+内容+KG），为您推荐了 ${this.movies.length} 部电影`;
           break;
         case 'director':
           title += `点赞，为您推荐了 ${this.movies.length} 部同导演电影`;
@@ -246,29 +332,36 @@ export default {
           this.userRatedMovies = (resData && resData.userRatedMovies) || [];
           this.similarityResults = (resData && resData.similarityResults) || [];
           // ###########################################################
+          // 协同过滤时也加载该用户的点赞电影，供「我的点赞电影」选项卡展示
+          this.loadUserLikedMovies();
         } else {
-          // 调用基于用户点赞的推荐接口
+          // 融合推荐 或 基于用户点赞的 KG 推荐接口
           let response;
-          switch (this.recommendationType) {
-            case 'director':
-              response = await getRecommendMoviesByDirector(this.selectedUserId, 20);
-              break;
-            case 'type-region':
-              response = await getRecommendMoviesByTypeAndRegion(this.selectedUserId, 20);
-              break;
-            case 'actor-director':
-              response = await getRecommendMoviesByActorAndDirector(this.selectedUserId, 20);
-              break;
-            default:
-              response = null;
+          if (this.recommendationType === 'fused') {
+            response = await getFusedRecommend(this.selectedUserId, 20);
+          } else {
+            switch (this.recommendationType) {
+              case 'director':
+                response = await getRecommendMoviesByDirector(this.selectedUserId, 20);
+                break;
+              case 'type-region':
+                response = await getRecommendMoviesByTypeAndRegion(this.selectedUserId, 20);
+                break;
+              case 'actor-director':
+                response = await getRecommendMoviesByActorAndDirector(this.selectedUserId, 20);
+                break;
+              default:
+                response = null;
+            }
           }
 
           if (response) {
-            // request 拦截器返回 Result：{ code, msg, data }
-            if (response.code === 200) {
-              this.movies = response.data || [];
+            // 兼容 axios 返回 { data: { code, msg, data } } 或 拦截器直接返回 { code, msg, data }
+            const res = response.data !== undefined && response.data.code !== undefined ? response.data : response;
+            if (res.code === 200) {
+              this.movies = res.data || [];
             } else {
-              this.$message.warning(response.msg || '获取推荐失败');
+              this.$message.warning(res.msg || '获取推荐失败');
               return;
             }
           }
@@ -292,10 +385,9 @@ export default {
       }
     },
 
-    // 加载用户点赞的电影（基于用户点赞记录接口，用于「我的点赞电影」选项卡）
+    // 加载用户点赞的电影（基于用户点赞记录接口，用于「我的点赞电影」选项卡；任意推荐类型下都加载）
     async loadUserLikedMovies() {
-      const isKgType = ['director', 'type-region', 'actor-director'].indexOf(this.recommendationType) !== -1;
-      if (!isKgType) return;
+      if (!this.selectedUserId) return;
       try {
         const res = await getLikedMovies(this.selectedUserId);
         const list = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
@@ -356,6 +448,16 @@ export default {
   border-radius: 8px;
   margin-bottom: 20px;
 }
+
+.user-select-with-refresh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-refresh-btn {
+  flex-shrink: 0;
+}
 /* 右侧：红框展示区（固定最小宽度，保证布局） */
 .control-right {
   flex: 1;
@@ -407,7 +509,9 @@ export default {
 }
 .rated-movie-item {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px;
   align-items: center;
   padding: 8px 12px;
   background: #fff;
@@ -461,6 +565,11 @@ export default {
   white-space: nowrap;
   color: #333;
 }
+.rating-score {
+  min-width: 32px;
+  color: #303133;
+  font-weight: 500;
+}
 .movie-rating {
   color: #F7BA2A;
 }
@@ -470,6 +579,12 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #333;
+}
+.avg-rating {
+  min-width: 90px;
+  color: #606266;
+  font-size: 13px;
+  margin-right: 8px;
 }
 .similarity-wrap {
   display: flex;

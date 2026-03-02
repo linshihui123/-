@@ -49,15 +49,25 @@
 
       <!-- 交互控制 -->
       <div class="interaction-controls">
-        <el-checkbox v-model="enableZoom" @change="updateInteraction">启用缩放</el-checkbox>
-        <el-checkbox v-model="enableDrag" @change="updateInteraction">启用拖拽</el-checkbox>
-        <el-checkbox v-model="enableNodeFollow" @change="updateInteraction">节点跟随</el-checkbox>
+        <el-checkbox v-model="enableZoom" @change="updateInteraction" class="tool-check">启用缩放</el-checkbox>
+        <el-checkbox v-model="enableDrag" @change="updateInteraction" class="tool-check">启用拖拽</el-checkbox>
+        <el-checkbox v-model="enableNodeFollow" @change="updateInteraction" class="tool-check">节点跟随</el-checkbox>
       </div>
 
-      <el-button type="primary" @click="resetGraph" class="reset-btn">重置图谱</el-button>
-      <el-button type="info" @click="expandAllNodes" class="expand-btn">展开全部</el-button>
-      <el-button type="info" @click="collapseAllNodes" class="collapse-btn">收起全部</el-button>
-      <el-button type="success" @click="exportGraph" class="export-btn">导出图谱</el-button>
+      <div class="toolbar-buttons">
+        <el-button type="primary" @click="resetGraph" class="tool-btn reset-btn">
+          <i class="el-icon-refresh-left"></i> 重置图谱
+        </el-button>
+        <el-button @click="expandAllNodes" class="tool-btn expand-btn">
+          <i class="el-icon-arrow-down"></i> 展开全部
+        </el-button>
+        <el-button @click="collapseAllNodes" class="tool-btn collapse-btn">
+          <i class="el-icon-arrow-up"></i> 收起全部
+        </el-button>
+        <el-button @click="exportGraph" class="tool-btn export-btn">
+          <i class="el-icon-picture-outline"></i> 导出截图
+        </el-button>
+      </div>
     </div>
 
     <!-- 图谱渲染画布：使用绝对定位占满剩余空间 -->
@@ -145,7 +155,9 @@ export default {
       // 新增：节点展开/收起状态
       expandedNodes: new Set(),
       // 新增：图谱缩放级别
-      zoomLevel: 1
+      zoomLevel: 1,
+      // 搜索时以该节点为中心并突出显示（存节点 id）
+      searchCenterNodeId: null
     }
   },
   mounted() {
@@ -213,6 +225,15 @@ export default {
               const nodes = this.graphData.nodes || []
               if (nodes.length === 0 && this.searchKeyword && this.searchKeyword.trim()) {
                 this.$message.info('未找到与「' + this.searchKeyword.trim() + '」相关的节点')
+                this.searchCenterNodeId = null
+              } else if (this.searchKeyword && this.searchKeyword.trim()) {
+                const keyword = this.searchKeyword.trim().toLowerCase()
+                const exact = nodes.find(n => n.name && n.name.toLowerCase() === keyword)
+                const contains = nodes.find(n => n.name && n.name.toLowerCase().includes(keyword))
+                const match = exact || contains
+                this.searchCenterNodeId = match ? match.id : null
+              } else {
+                this.searchCenterNodeId = null
               }
               this.renderGraph()
             }
@@ -314,6 +335,101 @@ export default {
       }
 
       const nodeCategories = this.getNodeCategories()
+
+      // 搜索节点时：以匹配节点为中心、突出显示
+      if (this.searchCenterNodeId) {
+        const centerNode = filteredNodes.find(n => n.id === this.searchCenterNodeId)
+        if (centerNode) {
+          const canvasWidth = this.$refs.graphCanvas ? this.$refs.graphCanvas.offsetWidth : 800
+          const canvasHeight = this.$refs.graphCanvas ? this.$refs.graphCanvas.offsetHeight : 600
+          const centerX = canvasWidth / 2
+          const centerY = canvasHeight / 2
+          const neighborIds = new Set()
+          filteredEdges.forEach(edge => {
+            if (edge.source === centerNode.id) neighborIds.add(edge.target)
+            if (edge.target === centerNode.id) neighborIds.add(edge.source)
+          })
+          const neighborNodes = filteredNodes.filter(n => neighborIds.has(n.id))
+          const otherNodes = filteredNodes.filter(n => n.id !== centerNode.id && !neighborIds.has(n.id))
+          const catIdx = nodeCategories.findIndex(c => c.name === centerNode.type)
+          const centerCat = catIdx >= 0 ? catIdx : 4
+          const nodes = []
+          const edges = []
+          // 中心节点：置于画布中心，图二效果——仅清晰黄色描边、无光晕，避免被遮挡
+          const centerSize = Math.max(this.getNodeSize(centerNode.name, true) * 1.4, 50)
+          nodes.push({
+            id: centerNode.id,
+            name: centerNode.name,
+            category: centerCat,
+            x: centerX,
+            y: centerY,
+            symbolSize: centerSize,
+            itemStyle: {
+              ...(nodeCategories[centerCat].itemStyle || {}),
+              borderWidth: 4,
+              borderColor: '#FFD700',
+              shadowBlur: 0,
+              shadowColor: 'transparent'
+            },
+            label: { show: true, fontSize: 13, fontWeight: 'bold', color: '#000', overflow: 'break', lineHeight: 16 },
+            draggable: true,
+            type: centerNode.type,
+            fixed: true
+          })
+          // 相邻节点：外圈半径足够大，不遮挡中心节点（中心半径约 centerSize/2，留出间距）
+          const r1 = Math.max(180, centerSize + 80)
+          neighborNodes.forEach((n, i) => {
+            const angle = (i / Math.max(neighborNodes.length, 1)) * 2 * Math.PI
+            const idx = nodeCategories.findIndex(c => c.name === n.type)
+            const cat = idx >= 0 ? idx : 4
+            nodes.push({
+              id: n.id,
+              name: n.name,
+              category: cat,
+              x: centerX + r1 * Math.cos(angle),
+              y: centerY + r1 * Math.sin(angle),
+              symbolSize: this.getNodeSize(n.name, false),
+              itemStyle: nodeCategories[cat].itemStyle,
+              label: { show: true, fontSize: 10, color: '#000', overflow: 'break', lineHeight: 14 },
+              draggable: true,
+              type: n.type,
+              fixed: false
+            })
+          })
+          // 其余节点：更外一圈，与第一圈留出间距，不互相遮挡
+          const r2 = Math.max(320, r1 + 100)
+          otherNodes.forEach((n, i) => {
+            const angle = (i / Math.max(otherNodes.length, 1)) * 2 * Math.PI
+            const idx = nodeCategories.findIndex(c => c.name === n.type)
+            const cat = idx >= 0 ? idx : 4
+            nodes.push({
+              id: n.id,
+              name: n.name,
+              category: cat,
+              x: centerX + r2 * Math.cos(angle),
+              y: centerY + r2 * Math.sin(angle),
+              symbolSize: this.getNodeSize(n.name, false),
+              itemStyle: nodeCategories[cat].itemStyle,
+              label: { show: true, fontSize: 10, color: '#000', overflow: 'break', lineHeight: 14 },
+              draggable: true,
+              type: n.type,
+              fixed: false
+            })
+          })
+          filteredEdges.forEach(edge => {
+            if (nodes.find(n => n.id === edge.source) && nodes.find(n => n.id === edge.target)) {
+              edges.push({
+                source: edge.source,
+                target: edge.target,
+                label: { show: true, formatter: edge.label, fontSize: 10, color: '#666', position: 'middle' },
+                lineStyle: { width: 1.5, color: '#B0C4DE', type: 'solid', opacity: 1 }
+              })
+            }
+          })
+          return { nodes, edges, categories: nodeCategories }
+        }
+        this.searchCenterNodeId = null
+      }
 
       // 收集所有电影节点（作为布局中心）；若无电影节点则用任意节点保证有内容可展示
       let movieNodes = filteredNodes.filter(node => node.type === 'movie')
@@ -859,6 +975,7 @@ export default {
       if (this.searchKeyword && this.searchKeyword.trim()) {
         this.fetchGraphData()
       } else {
+        this.searchCenterNodeId = null
         this.renderGraph()
       }
     },
@@ -866,6 +983,7 @@ export default {
     resetGraph() {
       this.selectedNodeType = 'all'
       this.searchKeyword = ''
+      this.searchCenterNodeId = null
       this.localMovieCount = 10
       this.fetchGraphData()
     },
@@ -943,13 +1061,14 @@ export default {
 .graph-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 20px;
-  background-color: #F8F9FA;
-  border-bottom: 1px solid #E5E5E5;
+  gap: 14px;
+  padding: 14px 22px;
+  background: linear-gradient(180deg, #fafbfc 0%, #f2f4f6 100%);
+  border-bottom: 1px solid #e8eaed;
   flex-shrink: 0;
   z-index: 10;
   flex-wrap: wrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .type-selector {
@@ -968,18 +1087,6 @@ export default {
   min-width: 140px;
 }
 
-.reset-btn {
-  background-color: #8A2BE2;
-  border-color: #8A2BE2;
-  color: white;
-  padding: 0 20px;
-}
-
-.reset-btn:hover {
-  background-color: #7B2BBE;
-  border-color: #7B2BBE;
-}
-
 .layout-selector {
   width: 180px;
   min-width: 180px;
@@ -988,36 +1095,107 @@ export default {
 .interaction-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
   flex-wrap: wrap;
 }
 
-.interaction-controls .el-checkbox {
-  margin-right: 8px;
+.interaction-controls .tool-check {
+  margin-right: 4px;
 }
 
-.expand-btn,
+.interaction-controls .tool-check ::v-deep .el-checkbox__label {
+  font-size: 13px;
+  color: #5f6368;
+}
+
+.interaction-controls .tool-check.is-checked ::v-deep .el-checkbox__label {
+  color: #1a73e8;
+}
+
+.interaction-controls ::v-deep .el-checkbox__inner {
+  border-radius: 4px;
+}
+
+.interaction-controls ::v-deep .el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #1a73e8;
+  border-color: #1a73e8;
+}
+
+.toolbar-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tool-btn {
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.tool-btn i {
+  margin-right: 4px;
+  font-size: 14px;
+}
+
+.reset-btn {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  border-color: #6d28d9;
+  color: #fff;
+}
+
+.reset-btn:hover {
+  background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+  border-color: #5b21b6;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+}
+
+.expand-btn {
+  background: #fff;
+  border-color: #dadce0;
+  color: #5f6368;
+}
+
+.expand-btn:hover {
+  background: #e8f0fe;
+  border-color: #1a73e8;
+  color: #1a73e8;
+}
+
 .collapse-btn {
-  padding: 0 16px;
+  background: #fff;
+  border-color: #dadce0;
+  color: #5f6368;
 }
 
-.expand-btn:hover,
 .collapse-btn:hover {
-  background-color: #E6F7FF;
-  border-color: #91D5FF;
-  color: #1890FF;
+  background: #f1f3f4;
+  border-color: #9aa0a6;
+  color: #3c4043;
 }
 
 .export-btn {
-  background-color: #52C41A;
-  border-color: #52C41A;
-  color: white;
-  padding: 0 16px;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-color: #047857;
+  color: #fff;
 }
 
 .export-btn:hover {
-  background-color: #389E0D;
-  border-color: #389E0D;
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+  border-color: #065f46;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
 }
 
 /* 关键改进：画布占满剩余空间 */

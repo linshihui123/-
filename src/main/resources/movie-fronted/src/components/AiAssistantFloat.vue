@@ -134,7 +134,9 @@ export default {
         }
       } catch (err) {
         console.error('火山方舟对话失败:', err)
-        this.chatMessages.push({ role: 'assistant', content: '抱歉，对话服务暂时不可用，请稍后重试。' })
+        const msg = (err.response && err.response.data && err.response.data.msg) ? err.response.data.msg : (err.message || '')
+        const tip = msg ? `抱歉，${msg}，请稍后重试。` : '抱歉，对话服务暂时不可用，请检查网络或后端服务后重试。'
+        this.chatMessages.push({ role: 'assistant', content: tip })
       } finally {
         this.aiLoading = false
       }
