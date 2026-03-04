@@ -1,0 +1,82 @@
+0 verbose cli D:\nodejs\node.exe D:\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.6.2
+2 info using node@v24.11.1
+3 silly config load:file:D:\nodejs\node_modules\npm\npmrc
+4 silly config load:file:D:\ideaProject\mes-pc-main\.npmrc
+5 silly config load:file:C:\Users\00109279\.npmrc
+6 silly config load:file:D:\nodejs\node_cache\etc\npmrc
+7 verbose title npm install caniuse-lite baseline-browser-mapping
+8 verbose argv "install" "caniuse-lite" "baseline-browser-mapping"
+9 verbose logfile logs-max:10 dir:D:\ideaProject\demo\.npm-cache\_logs\2026-02-11T02_14_19_751Z-
+10 verbose logfile D:\ideaProject\demo\.npm-cache\_logs\2026-02-11T02_14_19_751Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+13 silly logfile done cleaning log files
+14 silly idealTree buildDeps
+15 silly fetch manifest caniuse-lite@*
+16 silly packumentCache full:http://nexus.lesso.com/nexus/content/groups/npm/caniuse-lite cache-miss
+17 http fetch GET 200 http://nexus.lesso.com/nexus/content/groups/npm/caniuse-lite 566ms (cache updated)
+18 silly packumentCache full:http://nexus.lesso.com/nexus/content/groups/npm/caniuse-lite set size:2404215 disposed:false
+19 silly fetch manifest baseline-browser-mapping@*
+20 silly packumentCache full:http://nexus.lesso.com/nexus/content/groups/npm/baseline-browser-mapping cache-miss
+21 http fetch GET 200 http://nexus.lesso.com/nexus/content/groups/npm/baseline-browser-mapping 35ms (cache updated)
+22 silly packumentCache full:http://nexus.lesso.com/nexus/content/groups/npm/baseline-browser-mapping set size:402229 disposed:false
+23 silly placeDep ROOT baseline-browser-mapping@2.9.19 OK for: element-web-demo@3.0.2 want: *
+24 silly placeDep ROOT caniuse-lite@1.0.30001769 OK for: element-web-demo@3.0.2 want: *
+25 silly fetch manifest eslint@>= 1.6.0 < 7.0.0
+26 silly packumentCache full:http://nexus.lesso.com/nexus/content/groups/npm/eslint cache-miss
+27 http fetch GET 200 http://nexus.lesso.com/nexus/content/groups/npm/eslint 86ms (cache updated)
+28 silly packumentCache full:http://nexus.lesso.com/nexus/content/groups/npm/eslint set size:1971895 disposed:false
+29 verbose stack Error: could not resolve
+29 verbose stack     at PlaceDep.failPeerConflict (D:\nodejs\node_modules\npm\node_modules\@npmcli\arborist\lib\place-dep.js:503:25)
+29 verbose stack     at new PlaceDep (D:\nodejs\node_modules\npm\node_modules\@npmcli\arborist\lib\place-dep.js:157:21)
+29 verbose stack     at #buildDepStep (D:\nodejs\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:945:18)
+29 verbose stack     at async Arborist.buildIdealTree (D:\nodejs\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:182:7)
+29 verbose stack     at async Promise.all (index 1)
+29 verbose stack     at async Arborist.reify (D:\nodejs\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\reify.js:114:5)
+29 verbose stack     at async Install.exec (D:\nodejs\node_modules\npm\lib\commands\install.js:150:5)
+29 verbose stack     at async Npm.exec (D:\nodejs\node_modules\npm\lib\npm.js:208:9)
+29 verbose stack     at async module.exports (D:\nodejs\node_modules\npm\lib\cli\entry.js:67:5)
+30 error code ERESOLVE
+31 error ERESOLVE could not resolve
+32 error
+33 error While resolving: @vue/cli-plugin-eslint@4.5.13
+33 error Found: eslint@7.19.0
+33 error node_modules/eslint
+33 error   peer eslint@">= 5.0.0" from @vue/eslint-config-prettier@6.0.0
+33 error   node_modules/@vue/eslint-config-prettier
+33 error     dev @vue/eslint-config-prettier@"6.0.0" from the root project
+33 error   peer eslint@">= 4.12.1" from babel-eslint@10.1.0
+33 error   node_modules/babel-eslint
+33 error     dev babel-eslint@"10.1.0" from the root project
+33 error   4 more (eslint-config-prettier, eslint-plugin-prettier, ...)
+33 error
+33 error Could not resolve dependency:
+33 error peer eslint@">= 1.6.0 < 7.0.0" from @vue/cli-plugin-eslint@4.5.13
+33 error node_modules/@vue/cli-plugin-eslint
+33 error   dev @vue/cli-plugin-eslint@"4.5.13" from the root project
+33 error
+33 error Conflicting peer dependency: eslint@6.8.0
+33 error node_modules/eslint
+33 error   peer eslint@">= 1.6.0 < 7.0.0" from @vue/cli-plugin-eslint@4.5.13
+33 error   node_modules/@vue/cli-plugin-eslint
+33 error     dev @vue/cli-plugin-eslint@"4.5.13" from the root project
+33 error
+33 error Fix the upstream dependency conflict, or retry
+33 error this command with --force or --legacy-peer-deps
+33 error to accept an incorrect (and potentially broken) dependency resolution.
+34 error
+34 error
+34 error For a full report see:
+34 error D:\ideaProject\demo\.npm-cache\_logs\2026-02-11T02_14_19_751Z-eresolve-report.txt
+35 silly unfinished npm timer reify 1770776060965
+36 silly unfinished npm timer reify:loadTrees 1770776060969
+37 silly unfinished npm timer idealTree:buildDeps 1770776061692
+38 silly unfinished npm timer idealTree:node_modules/@vue/cli-plugin-eslint 1770776062323
+39 verbose cwd D:\ideaProject\mes-pc-main
+40 verbose os Windows_NT 10.0.18363
+41 verbose node v24.11.1
+42 verbose npm  v11.6.2
+43 verbose exit 1
+44 verbose code 1
+45 error A complete log of this run can be found in: D:\ideaProject\demo\.npm-cache\_logs\2026-02-11T02_14_19_751Z-debug-0.log
