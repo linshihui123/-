@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.ai.AiDomainFacadeService;
 import org.example.model.CollaborativeFilteringResult;
 import org.example.model.MovieRecommendItem;
+import org.example.model.CommentBasedRecommendationItem;
+import org.example.model.RatingPredictionItem;
 import org.example.response.Result;
 import org.example.response.ResultCodeEnum;
 import org.example.service.MovieRecommendationService;
@@ -11,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -110,42 +111,6 @@ public class RecommendationController {
         }
     }
     /**
-     * 展示单部电影的评分分布（如 1 分占比 10%、4 分占比 50%）；
-     */
-    @GetMapping("/movie-ratings/{movieName}")
-    public Result<List<Map<String, Object>>> getMovieRatings(@PathVariable String movieName) {
-        List<Map<String, Object>> movieRatings = (List<Map<String, Object>>) recommendationService.getMovieRatings(movieName);
-        return Result.success(movieRatings);
-    }
-    /**
-     * 按类型 / 地区统计电影的平均评分、平均评论数
-     */
-
-    @GetMapping("/movie-ratings-by-type")
-    public Result<List<Map<String, Object>>> getMovieRatingsByType() {
-        try {
-            List<Map<String, Object>> typeStats = recommendationService.getMovieRatingsByType();
-            
-            return Result.success(typeStats != null ? typeStats : new ArrayList<>());
-        } catch (Exception e) {
-            log.error("获取类型统计信息失败", e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取类型统计信息失败");
-        }
-    }
-    
-    @GetMapping("/movie-ratings-by-region")
-    public Result<List<Map<String, Object>>> getMovieRatingsByRegion() {
-        try {
-            List<Map<String, Object>> regionStats = recommendationService.getMovieRatingsByRegion();
-            
-            return Result.success(regionStats != null ? regionStats : new ArrayList<>());
-        } catch (Exception e) {
-            log.error("获取区域统计信息失败", e);
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取区域统计信息失败");
-        }
-    }
-    
-    /**
      * 多维度电影榜单接口
      * 包含：高分榜、热门评论榜、类型榜
      * @param year 年份筛选（可选）
@@ -166,6 +131,87 @@ public class RecommendationController {
         } catch (Exception e) {
             log.error("获取多维度榜单失败：year={}, type={}, region={}, limit={}", year, type, region, limit, e);
             return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "获取多维度榜单失败");
+        }
+    }
+
+    /**
+     * 基于评论 + 大模型分析的推荐接口。
+     * 入参示例：
+     * {
+     *   "username": "user1",
+     *   "movieName": "肖申克的救赎",
+     *   "comment": "剧情很感人，节奏舒缓但不拖沓，结局非常治愈。",
+     *   "limit": 5
+     * }
+     * 说明：
+     * - 当前后端要求前端传入评论内容 comment；
+     * - 返回列表中每一项包含推荐电影节点信息，reason 字段暂留（当前版本未填充文案）。
+     */
+    @PostMapping("/comment-based")
+    public Result<List<CommentBasedRecommendationItem>> recommendByComment(@RequestBody Map<String, Object> body) {
+        try {
+            if (body == null) {
+                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "请求体不能为空");
+            }
+            Object usernameObj = body.get("username");
+            Object movieNameObj = body.get("movieName");
+            Object commentObj = body.get("comment");
+            Object limitObj = body.get("limit");
+
+            String username = usernameObj != null ? String.valueOf(usernameObj).trim() : null;
+            String movieName = movieNameObj != null ? String.valueOf(movieNameObj).trim() : null;
+            String comment = commentObj != null ? String.valueOf(commentObj).trim() : null;
+            int limit = 10;
+            if (limitObj instanceof Number) {
+                limit = ((Number) limitObj).intValue();
+            } else if (limitObj instanceof String) {
+                try {
+                    limit = Integer.parseInt((String) limitObj);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            if (limit <= 0) {
+                limit = 10;
+            }
+
+            if (movieName == null || movieName.isEmpty()) {
+                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "movieName 不能为空");
+            }
+            if (comment == null || comment.isEmpty()) {
+                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "comment 不能为空");
+            }
+
+            List<CommentBasedRecommendationItem> items =
+                    recommendationService.recommendByComment(username, movieName, comment, limit);
+            return Result.success(items != null ? items : new java.util.ArrayList<>());
+        } catch (Exception e) {
+            log.error("基于评论的大模型推荐失败，请求体={}", body, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "基于评论推荐失败");
+        }
+    }
+
+    /**
+     * 基于评分预测的推荐接口：
+     * - 系统根据其他用户对电影的评分，预测当前用户可能的评分；
+     * - 返回可能高分的电影列表，每条包含预测评分、推荐理由和知识图谱关系摘要。
+     */
+    @GetMapping("/rating-prediction")
+    public Result<List<RatingPredictionItem>> ratingPredictionRecommend(
+            @RequestParam String username,
+            @RequestParam(defaultValue = "20") Integer limit
+    ) {
+        try {
+            if (username == null || username.trim().isEmpty()) {
+                return Result.error(ResultCodeEnum.PARAM_ERROR.getCode(), "username 不能为空");
+            }
+            if (limit == null || limit <= 0) {
+                limit = 20;
+            }
+            List<RatingPredictionItem> items = recommendationService.ratingPredictionByUsername(username.trim(), limit);
+            return Result.success(items != null ? items : new ArrayList<>());
+        } catch (Exception e) {
+            log.error("评分预测推荐失败：username={}, limit={}", username, limit, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.getCode(), "评分预测推荐失败");
         }
     }
 }

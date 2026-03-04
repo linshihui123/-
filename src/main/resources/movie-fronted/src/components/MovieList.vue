@@ -1,50 +1,32 @@
 <template>
   <div class="movie-list-container" v-loading="loading">
 
-<el-card shadow="hover" v-if="movies.length > 0">
-  <div slot="header" class="card-header" v-if="showTitle">
-    <span>推荐结果（共{{ movies.length }}部）</span>
-  </div>
-<el-row :gutter="12">
-  <el-col :xs="24" :sm="12" :md="6" :lg="6" v-for="movie in movies" :key="movie.id" class="movie-card">
-    <el-card class="movie-item shadow-lift" @click.native="handleMovieClick(movie)">
-        <div class="movie-content">
-          <div class="movie-name">{{ movie.movieName || movie.name || movie.movie_name || '未知电影' }}</div>
+    <el-card shadow="hover" v-if="movies.length > 0">
+      <div slot="header" class="card-header" v-if="showTitle">
+        <span>推荐结果（共{{ movies.length }}部）</span>
+      </div>
 
-          <div class="movie-metadata">
-            <div class="metadata-item">
-              <i class="el-icon-collection-tag"></i>
-              <span>{{ movie.type || '未知' }}</span>
-            </div>
-            <div class="metadata-item">
-              <i class="el-icon-location"></i>
-              <span>{{ movie.direction || movie.region || movie.area || '未知' }}</span>
-            </div>
-            <div class="metadata-item" v-if="movie.rating && movie.rating !== '暂无评分'">
-              <i class="el-icon-star-on"></i>
-              <span>{{ parseFloat(movie.rating).toFixed(1) }}</span>
+      <!-- 纵向列表：左列电影名，上下排列；右列对应推荐理由 -->
+      <div class="movie-rows-wrapper">
+        <div
+          class="movie-row"
+          v-for="item in movies"
+          :key="getInnerMovie(item).id"
+          @click="handleMovieClick(getInnerMovie(item))"
+        >
+          <div class="movie-name-col">
+            <div class="movie-name">
+              {{ getInnerMovie(item).movieName || getInnerMovie(item).name || getInnerMovie(item).movie_name || '未知电影' }}
             </div>
           </div>
-
-          <div class="movie-info">
-            <div class="info-item">
-              <strong>导演：</strong>
-              <span class="director-names">{{ getDirectorNames(movie) }}</span>
+          <div class="movie-reason-col" v-if="item.reason">
+            <div class="recommend-reason">
+              推荐理由：{{ item.reason }}
             </div>
-            <div class="info-item">
-              <strong>演员：</strong>
-              <span class="actor-names">{{ getActorNames(movie) }}</span>
-            </div>
-          </div>
-
-          <div class="movie-desc" :title="movie.instruction || '暂无介绍'">
-            {{ movie.instruction || '暂无介绍' }}
           </div>
         </div>
-      </el-card>
-    </el-col>
-  </el-row>
-</el-card>
+      </div>
+    </el-card>
     <el-empty v-else description="暂无推荐结果"></el-empty>
   </div>
 </template>
@@ -59,11 +41,12 @@ export default {
       handler(newVal) {
         console.log('🎬 MovieList 组件接收到数据:', newVal);
         if (newVal && newVal.length > 0) {
-          console.log('📌 第一部电影详情:', newVal[0]);
-          console.log('📌 电影名称:', newVal[0].movieName || newVal[0].name || '未知');
-          console.log('📌 电影ID:', newVal[0].id);
-          console.log('📌 电影类型:', newVal[0].type);
-          console.log('📌 评分:', newVal[0].movieRating);
+          const firstMovie = this.getInnerMovie(newVal[0]);
+          console.log('📌 第一部电影详情:', firstMovie);
+          console.log('📌 电影名称:', firstMovie.movieName || firstMovie.name || '未知');
+          console.log('📌 电影ID:', firstMovie.id);
+          console.log('📌 电影类型:', firstMovie.type);
+          console.log('📌 评分:', firstMovie.movieRating);
         }
       },
       immediate: true
@@ -87,6 +70,13 @@ export default {
     // 处理电影点击事件
     handleMovieClick(movie) {
       this.$emit('movie-click', movie);
+    },
+    // 兼容旧数据结构（直接是 MovieNode）和新结构（{ movie, reason, kgRelations }）
+    getInnerMovie(item) {
+      if (!item) {
+        return {};
+      }
+      return item.movie || item;
     },
     // 格式化导演名称
     getDirectorNames(movie) {
@@ -155,34 +145,49 @@ export default {
   padding: 20px;
 }
 
-.movie-card {
-  margin-bottom: 25px;
-  width: 220px;
-}
-
-.movie-item {
-  height: 400px;
-  min-height: 400px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-  border-radius: 12px;
-  overflow: hidden;
+.movie-rows-wrapper {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
 }
 
-.movie-content {
-  padding: 20px;
-  height: 280px;
+.movie-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.movie-row + .movie-row {
+  border-top: 1px solid #f0f0f0;
+}
+
+.movie-row:hover {
+  background-color: #f9fafc;
+}
+
+.movie-name-col {
+  flex: 0 0 110px;
+  padding-right: 12px;
+  border-right: 1px solid #f0f0f0;
+}
+
+.movie-reason-col {
+  flex: 1;
+  padding-left: 12px;
+}
+
+.recommend-reason {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.5;
 }
 
 .movie-name {
   font-size: 16px;
   font-weight: 700;
   color: #333;
-  margin-bottom: 12px;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -241,16 +246,19 @@ export default {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .movie-card {
-    margin-bottom: 20px;
+  .movie-row {
+    flex-direction: column;
   }
 
-  .movie-content {
-    padding: 15px;
+  .movie-name-col {
+    flex: 1;
+    padding-right: 0;
+    border-right: none;
+    margin-bottom: 6px;
   }
 
-  .movie-name {
-    font-size: 16px;
+  .movie-reason-col {
+    padding-left: 0;
   }
 }
 

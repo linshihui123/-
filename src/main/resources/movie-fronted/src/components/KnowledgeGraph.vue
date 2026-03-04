@@ -67,8 +67,28 @@
         <el-button @click="exportGraph" class="tool-btn export-btn">
           <i class="el-icon-picture-outline"></i> 导出截图
         </el-button>
+        <el-button
+          type="success"
+          @click="handleAiExplainGraph"
+          class="tool-btn ai-explain-btn"
+          :loading="aiExplaining"
+          :disabled="aiExplaining"
+        >
+          <i class="el-icon-magic-stick"></i>
+          {{ aiExplaining ? 'AI 正在解读图谱...' : 'AI 解读当前图谱' }}
+        </el-button>
       </div>
     </div>
+
+    <!-- AI 解读结果 -->
+    <el-alert
+        v-if="aiExplainText"
+        class="ai-graph-explain"
+        type="info"
+        :closable="false"
+        :title="aiExplainText"
+        show-icon>
+    </el-alert>
 
     <!-- 图谱渲染画布：使用绝对定位占满剩余空间 -->
     <div ref="graphCanvas" class="graph-canvas"></div>
@@ -115,6 +135,7 @@
 
 <script>
 import request from '@/utils/request'
+import { arkMultiChat } from '@/api/recommend'
 const echarts = require('echarts')
 
 export default {
@@ -157,7 +178,10 @@ export default {
       // 新增：图谱缩放级别
       zoomLevel: 1,
       // 搜索时以该节点为中心并突出显示（存节点 id）
-      searchCenterNodeId: null
+      searchCenterNodeId: null,
+      // AI 对当前图谱的解读
+      aiExplainText: '',
+      aiExplaining: false
     }
   },
   mounted() {
@@ -242,6 +266,79 @@ export default {
             this.$message.error('数据请求失败：' + err.message)
             console.error('图谱数据请求失败：', err)
           })
+    },
+
+    /**
+     * 调用大模型，对当前知识图谱做一次自然语言导览说明。
+     */
+    async handleAiExplainGraph() {
+      if (this.aiExplaining) return
+      if (!this.graphData || !this.graphData.nodes || this.graphData.nodes.length === 0) {
+        this.$message.warning('当前没有可供 AI 解读的图谱数据')
+        return
+      }
+      this.aiExplaining = true
+      try {
+        const nodes = this.graphData.nodes || []
+        const edges = this.graphData.edges || []
+        const totalNodes = nodes.length
+        const totalEdges = edges.length
+
+        // 简单统计：按类型分类节点数量
+        const typeCountMap = {}
+        nodes.forEach(n => {
+          const t = n.type || 'unknown'
+          typeCountMap[t] = (typeCountMap[t] || 0) + 1
+        })
+
+        // 取若干度数最高的节点作为“核心节点”样本
+        const degreeMap = {}
+        edges.forEach(e => {
+          if (!e || !e.source || !e.target) return
+          degreeMap[e.source] = (degreeMap[e.source] || 0) + 1
+          degreeMap[e.target] = (degreeMap[e.target] || 0) + 1
+        })
+        const nodesWithDegree = nodes.map(n => ({
+          id: n.id,
+          name: n.name,
+          type: n.type,
+          degree: degreeMap[n.id] || 0
+        }))
+        nodesWithDegree.sort((a, b) => b.degree - a.degree)
+        const coreSamples = nodesWithDegree.slice(0, 8)
+
+        const summary = {
+          totalNodes,
+          totalEdges,
+          typeCountMap,
+          coreSamples
+        }
+
+        const userId = this.currentUser && (this.currentUser.username || this.currentUser.name || this.currentUser.id) || 'anonymous'
+        const question =
+          `下面是当前知识图谱的结构摘要，来自用户「${userId}」浏览时的图谱视图。` +
+          `请用通俗中文说明：1）这个图谱大致包含哪些类型的节点（电影/导演/演员/地区/类型等），各自数量大概多少；` +
+          `2）度数较高的核心节点有哪些，他们分别代表什么含义；` +
+          `3）从这个图谱可以看出这个电影数据的大致特点，比如地区分布或导演/演员合作关系。` +
+          `不要输出 JSON，只输出自然语言解释。`
+
+        const messages = [
+          { role: 'user', content: question },
+          { role: 'user', content: '图谱结构摘要：' + JSON.stringify(summary, null, 2) }
+        ]
+
+        const res = await arkMultiChat({ messages, userId })
+        if (res && res.code === 200 && res.data) {
+          this.aiExplainText = res.data
+        } else {
+          this.$message.error(res && res.msg ? res.msg : 'AI 解读图谱失败，请稍后重试')
+        }
+      } catch (e) {
+        console.error('AI 解读知识图谱失败:', e)
+        this.$message.error('AI 解读知识图谱失败，请稍后重试')
+      } finally {
+        this.aiExplaining = false
+      }
     },
 
     // 优化后的节点大小计算
@@ -1130,6 +1227,10 @@ export default {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.ai-graph-explain {
+  margin: 10px 0;
 }
 
 .tool-btn {

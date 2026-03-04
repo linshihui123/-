@@ -33,30 +33,6 @@ export function getAllCommentCreators() {
     })
 }
 
-// 获取单部电影的评分分布
-export function getMovieRatings(movieName) {
-    return request({
-        url: `/recommendation/movie-ratings/${encodeURIComponent(movieName)}`,
-        method: 'get'
-    })
-}
-
-// 按类型统计电影的平均评分和电影数量
-export function getMovieRatingsByType() {
-    return request({
-        url: '/recommendation/movie-ratings-by-type',
-        method: 'get'
-    })
-}
-
-// 按地区统计电影的平均评分和电影数量
-export function getMovieRatingsByRegion() {
-    return request({
-        url: '/recommendation/movie-ratings-by-region',
-        method: 'get'
-    })
-}
-
 // 获取指定电影的评论记录及 AI 总结（根据电影名称）。首次请求可能调用大模型，超时设为 60 秒；有缓存时响应较快
 // config 可选，如 { cancelToken } 用于切换电影时取消上一次请求
 export function getMovieCommentsByMovieName(movieName, config = {}) {
@@ -127,6 +103,26 @@ export function getLikedMovies(username) {
         url: '/like/liked-movies',
         method: 'get',
         params: { username }
+    })
+}
+
+// 基于评分预测的推荐
+export function getRatingPredictionRecommend(username, limit = 20) {
+    return request({
+        url: '/recommendation/rating-prediction',
+        method: 'get',
+        params: { username, limit }
+    })
+}
+
+// 基于评论 + 大模型分析的推荐
+export function getCommentBasedRecommend(payload) {
+    return request({
+        url: '/recommendation/comment-based',
+        method: 'post',
+        data: payload,
+        // 大模型分析可能较慢，单独放宽超时时间
+        timeout: 60000
     })
 }
 

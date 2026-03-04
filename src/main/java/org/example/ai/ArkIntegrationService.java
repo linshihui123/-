@@ -188,6 +188,130 @@ public class ArkIntegrationService {
         messages.add(new ChatMessage("user", userMessage));
         return chat(messages);
     }
+
+    /**
+     * 基于用户对某部电影的评论，结合候选电影列表，请求大模型返回推荐的电影名称列表。
+     * 说明：
+     * - 仅在候选列表中选择推荐结果，避免大模型“胡编电影”。
+     * - 约定大模型严格返回 JSON 数组字符串，例如：
+     *   ["电影A","电影B","电影C"]
+     *
+     * @param comment       用户对目标电影的评论内容（已做基本清洗）
+     * @param targetMovie   目标电影节点（用于提供名称、类型、评分等上下文）
+     * @param candidateMovies 候选电影列表（供大模型筛选）
+     * @param limit         期望返回的推荐数量上限
+     * @return 大模型返回的候选电影名称列表（按相关度从高到低排序），名称需与候选列表中的名称匹配
+     */
+    public List<String> recommendMoviesByComment(
+            String comment,
+            org.example.model.MovieNode targetMovie,
+            List<org.example.model.MovieNode> candidateMovies,
+            int limit
+    ) {
+        if (arkService == null) {
+            throw new RuntimeException("火山方舟服务未初始化");
+        }
+        if (targetMovie == null || candidateMovies == null || candidateMovies.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("你是一名专业的电影推荐系统，需要根据用户对某部电影的评论，")
+                .append("在给定的候选电影列表中挑选出最有可能让该用户感兴趣的电影，并只返回候选列表中的电影名称。\n\n");
+
+        // 目标电影信息
+        prompt.append("【目标电影信息】\n");
+        prompt.append("名称：").append(safe(targetMovie.getMovieName())).append("\n");
+        if (targetMovie.getType() != null) {
+            prompt.append("类型：").append(targetMovie.getType()).append("\n");
+        }
+        if (targetMovie.getRegion() != null) {
+            prompt.append("地区：").append(targetMovie.getRegion()).append("\n");
+        }
+        if (targetMovie.getMovieRating() != null) {
+            prompt.append("评分：").append(targetMovie.getMovieRating()).append("\n");
+        }
+        if (targetMovie.getDirectorString() != null) {
+            prompt.append("导演：").append(targetMovie.getDirectorString().replace("|", "、")).append("\n");
+        }
+        if (targetMovie.getActorString() != null) {
+            prompt.append("主演：").append(targetMovie.getActorString().replace("|", "、")).append("\n");
+        }
+
+        // 用户评论
+        prompt.append("\n【用户对该电影的评论】\n");
+        prompt.append(comment).append("\n\n");
+
+        // 候选电影列表
+        prompt.append("【候选电影列表】（你只能从下面这些电影中选择推荐目标）\n");
+        int index = 1;
+        for (org.example.model.MovieNode m : candidateMovies) {
+            if (m == null) continue;
+            prompt.append(index++).append("、")
+                    .append(safe(m.getMovieName()));
+            if (m.getType() != null) {
+                prompt.append("（类型：").append(m.getType()).append("）");
+            }
+            if (m.getMovieRating() != null) {
+                prompt.append(" 评分：").append(m.getMovieRating());
+            }
+            prompt.append("\n");
+        }
+
+        // 输出要求
+        prompt.append("\n【任务要求】\n")
+                .append("1. 请综合分析用户评论中的喜好倾向（例如喜欢的题材、节奏、情感氛围等），")
+                .append("并从候选电影中选择最合适的电影进行推荐。\n")
+                .append("2. 最多推荐 ").append(limit).append(" 部电影，至少 1 部。\n")
+                .append("3. 严格以 JSON 数组形式输出结果，不要包含多余说明文字，例如：\n")
+                .append("[\"电影A\",\"电影B\"]\n")
+                .append("4. 数组元素必须是上面候选列表中出现过的电影名称，不要编造新电影。\n");
+
+        String raw = singleChat(prompt.toString());
+        if (raw == null) {
+            return new ArrayList<>();
+        }
+
+        // 简单解析 JSON 数组格式：["电影A","电影B"]
+        List<String> names = new ArrayList<>();
+        String trimmed = raw.trim();
+        try {
+            if (trimmed.startsWith("[")) {
+                // 去掉前后方括号
+                String inner = trimmed.substring(1, trimmed.lastIndexOf("]"));
+                String[] parts = inner.split(",");
+                for (String part : parts) {
+                    String name = part.trim();
+                    if (name.startsWith("\"") && name.endsWith("\"") && name.length() >= 2) {
+                        name = name.substring(1, name.length() - 1);
+                    }
+                    if (!name.isEmpty()) {
+                        names.add(name);
+                    }
+                }
+            } else {
+                // 非数组时，尽量拆分行或逗号
+                String[] parts = trimmed.split("[,\\n]");
+                for (String part : parts) {
+                    String name = part.trim();
+                    if (name.startsWith("-")) {
+                        name = name.substring(1).trim();
+                    }
+                    if (!name.isEmpty()) {
+                        names.add(name);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("解析评论推荐返回结果失败，原始内容：{}", raw, e);
+        }
+
+        return names;
+    }
+
+    private String safe(String s) {
+        return s == null ? "" : s;
+    }
     
     /**
      * 对话消息实体类

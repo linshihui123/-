@@ -55,14 +55,6 @@
                 <el-button
                     type="primary"
                     plain
-                    :class="{ 'nav-active': activeTab === 'stats' }"
-                    @click="switchTab('stats')"
-                >
-                  <i class="el-icon-pie-chart"></i> 评分统计
-                </el-button>
-                <el-button
-                    type="primary"
-                    plain
                     :class="{ 'nav-active': activeTab === 'graph' }"
                     @click="switchTab('graph')"
                 >
@@ -149,13 +141,6 @@
                       <p>探索电影、导演、演员之间的关系</p>
                     </div>
                   </el-card>
-                  <el-card class="feature-card" @click.native="switchTab('stats')">
-                    <div class="feature-content">
-                      <i class="el-icon-pie-chart feature-icon" style="color: #f56c6c;"></i>
-                      <h3>评分统计</h3>
-                      <p>电影评分分布与类型统计</p>
-                    </div>
-                  </el-card>
                   <el-card class="feature-card" @click.native="switchTab('rankings')">
                     <div class="feature-content">
                       <i class="el-icon-trophy feature-icon" style="color: #909399;"></i>
@@ -199,15 +184,6 @@
           <KnowledgeGraph :current-user="currentUser" />
         </div>
 
-        <!-- 评分统计页面 -->
-        <div v-if="activeTab === 'stats'" class="stats-container">
-          <div class="layout-wrapper">
-            <div class="main-content">
-              <MovieRatingStats />
-            </div>
-          </div>
-        </div>
-        
         <!-- 电影榜单页面 -->
         <div v-if="activeTab === 'rankings'" class="rankings-container">
           <div class="layout-wrapper">
@@ -266,7 +242,6 @@ import MovieBrowse from './components/MovieBrowse.vue'
 import UserAuth from './components/UserAuth.vue'
 import KnowledgeGraph from './components/KnowledgeGraph.vue'
 import CollaborativeFilteringRecommend from './components/CollaborativeFilteringRecommend.vue'
-import MovieRatingStats from './components/MovieRatingStats.vue'
 import MovieRankings from './components/MovieRankings.vue'
 import AiAssistantFloat from './components/AiAssistantFloat.vue'
 // 移除推荐相关接口导入
@@ -281,7 +256,6 @@ export default {
     UserAuth,
     KnowledgeGraph,
     CollaborativeFilteringRecommend,
-    MovieRatingStats,
     MovieRankings,
     AiAssistantFloat
   },

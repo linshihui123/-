@@ -10,8 +10,6 @@ import org.example.repository.CommentRepository;
 import org.example.response.Result;
 import org.example.response.ResultCodeEnum;
 import org.example.response.SimilarityResult;
-import org.neo4j.ogm.cypher.ComparisonOperator;
-import org.neo4j.ogm.cypher.Filter;
 import org.neo4j.ogm.session.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +42,9 @@ public class MovieRecommendationService {
 
     @Autowired
     private AiDomainFacadeService aiDomainFacadeService;
+
+    @Autowired
+    private org.example.ai.ArkIntegrationService arkIntegrationService;
 
     /** 电影评论+AI总结 内存缓存，避免每次请求都查库，响应更快。key=电影名，value=缓存项（含过期时间） */
     private final Map<String, CacheEntry<Result<Map<String, Object>>>> movieCommentsCache = new ConcurrentHashMap<>();
@@ -113,6 +114,392 @@ public class MovieRecommendationService {
             return ((Number) result.iterator().next().get("count")).longValue();
         }
         return 0;
+    }
+
+    /**
+     * 基于用户对某一部电影的评论 + 大模型分析的推荐。
+     * 流程：
+     * 1）根据电影名称找到对应 Movie 节点；
+     * 2）若评论内容为空，可后续扩展为从 Comment 中按用户+电影取最新评论（当前版本要求前端传入评论）；
+     * 3）基于目标电影构造候选电影集合（同类型/同地区/高分电影）；
+     * 4）调用 ArkIntegrationService.recommendMoviesByComment，请求大模型从候选中挑选推荐；
+     * 5）根据返回的电影名称映射为本地 MovieNode 列表，封装为 CommentBasedRecommendationItem 返回。
+     */
+    public List<CommentBasedRecommendationItem> recommendByComment(
+            String username,
+            String movieName,
+            String comment,
+            int limit
+    ) {
+        if (movieName == null || movieName.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (comment == null || comment.trim().isEmpty()) {
+            // 当前版本简单要求前端传入评论内容
+            return Collections.emptyList();
+        }
+        String trimMovieName = movieName.trim();
+        int topN = Math.max(limit, 1);
+
+        // 直接构造提示词给大模型，不依赖 Neo4j 电影节点或候选集
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("你是一名专业的电影推荐助手。\n")
+                .append("用户刚刚看完一部电影，并给出了自己的真实评论。\n")
+                .append("请根据这段评论中体现出来的喜好偏好（例如题材、情绪氛围、节奏、价值观等），")
+                .append("推荐").append(topN).append("部你认为最合适 TA 的电影。\n\n")
+                .append("【用户看过的电影名称】\n")
+                .append(trimMovieName).append("\n\n")
+                .append("【用户对该电影的评论】\n")
+                .append(comment.trim()).append("\n\n")
+                .append("【输出要求】\n")
+                .append("1. 严格以 JSON 数组形式返回推荐结果，不要夹杂任何解释性文字。\n")
+                .append("2. 每个元素是一个字符串，对应一部推荐电影的名称，例如：\n")
+                .append("[\"电影A\",\"电影B\",\"电影C\"]\n")
+                .append("3. 请尽量推荐与用户口味相近、评分较高、口碑良好的电影。\n");
+
+        String raw = arkIntegrationService.singleChat(prompt.toString());
+        if (raw == null) {
+            return Collections.emptyList();
+        }
+
+        // 解析 JSON 数组，提取电影名称列表
+        List<String> names = new ArrayList<>();
+        String trimmed = raw.trim();
+        try {
+            if (trimmed.startsWith("[")) {
+                String inner = trimmed.substring(1, trimmed.lastIndexOf("]"));
+                String[] parts = inner.split(",");
+                for (String part : parts) {
+                    String name = part.trim();
+                    if (name.startsWith("\"") && name.endsWith("\"") && name.length() >= 2) {
+                        name = name.substring(1, name.length() - 1);
+                    }
+                    if (!name.isEmpty()) {
+                        names.add(name);
+                    }
+                }
+            } else {
+                String[] parts = trimmed.split("[,\\n]");
+                for (String part : parts) {
+                    String name = part.trim();
+                    if (name.startsWith("-")) {
+                        name = name.substring(1).trim();
+                    }
+                    if (!name.isEmpty()) {
+                        names.add(name);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("解析评论推荐返回结果失败，原始内容：{}", raw, e);
+        }
+
+        if (names.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 组装返回 DTO，这里不依赖真实 MovieNode，仅构造名称供前端展示
+        List<CommentBasedRecommendationItem> result = new ArrayList<>();
+        for (String name : names) {
+            org.example.model.MovieNode dummy = new org.example.model.MovieNode();
+            dummy.setMovieName(name);
+
+            CommentBasedRecommendationItem item = CommentBasedRecommendationItem.builder()
+                    .movie(dummy)
+                    .reason("基于你对《" + trimMovieName + "》的评论语义分析，大模型认为你可能也会喜欢《" + name + "》。")
+                    .kgRelations(Collections.emptyList())
+                    .build();
+            result.add(item);
+            if (result.size() >= topN) {
+                break;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 为“评分预测推荐”构造结果列表：预测用户对未看过电影的评分，并给出推荐理由和知识图谱关系摘要。
+     */
+    public List<RatingPredictionItem> ratingPredictionByUsername(String username, int limit) {
+        if (username == null || username.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        String trimName = username.trim();
+        int topN = Math.max(limit, 1);
+
+        // 1. 先复用协同过滤，拿到相似用户及相似度
+        CollaborativeFilteringResult cfResult = collaborativeFilteringRecommendByUsername(trimName);
+        List<SimilarityResult> similarityResults = cfResult.getSimilarityResults();
+        if (CollectionUtils.isEmpty(similarityResults)) {
+            // 找不到相似用户时，退化为默认高分电影
+            List<MovieNode> fallback = getDefaultHighRatingMovies(topN);
+            List<RatingPredictionItem> fallbackItems = new ArrayList<>();
+            for (MovieNode movie : fallback) {
+                if (movie == null) continue;
+                RatingPredictionItem item = RatingPredictionItem.builder()
+                        .movie(movie)
+                        .predictedRating(movie.getMovieRating())
+                        .reason("未找到与你评分行为相似的用户，暂以全局高分电影作为推荐。")
+                        .kgRelations(buildKgRelationsSummary(movie))
+                        .build();
+                fallbackItems.add(item);
+            }
+            return fallbackItems;
+        }
+
+        // 相似用户相似度映射（只保留相似度>0的）
+        Map<String, Double> userSimMap = new HashMap<>();
+        for (SimilarityResult sr : similarityResults) {
+            if (sr == null || sr.getUserId() == null) continue;
+            double sim = sr.getSimilarity();
+            if (sim > 0) {
+                userSimMap.put(sr.getUserId(), sim);
+            }
+        }
+        if (userSimMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 取出目标用户已评分电影，预测时排除这些
+        List<Integer> ratedIdsList = getUserRatedMovieIdsByUsername(trimName);
+        Set<Integer> ratedIds = new HashSet<>(ratedIdsList != null ? ratedIdsList : Collections.emptyList());
+
+        // 3. 从相似用户的评分中，收集“目标用户未评分”的电影及其加权评分
+        String ratingsCypher =
+                "MATCH (c:Comment) " +
+                        "WHERE c.creator IN $similarUsers " +
+                        "  AND c.comment_rating IS NOT NULL " +
+                        "  AND NOT c.movie_id IN $ratedIds " +
+                        "RETURN c.creator AS creator, c.movie_id AS movieId, c.comment_rating AS rating";
+        Map<String, Object> params = new HashMap<>();
+        params.put("similarUsers", new ArrayList<>(userSimMap.keySet()));
+        params.put("ratedIds", ratedIds.isEmpty() ? Collections.singleton(-1) : ratedIds);
+
+        Iterable<Map<String, Object>> ratingRows = neo4jSession.query(ratingsCypher, params);
+
+        Map<Integer, Double> numMap = new HashMap<>();
+        Map<Integer, Double> denMap = new HashMap<>();
+        Map<Integer, Integer> cntMap = new HashMap<>();
+
+        for (Map<String, Object> row : ratingRows) {
+            if (row == null) continue;
+            String creator = row.get("creator") != null ? row.get("creator").toString() : null;
+            if (creator == null) continue;
+            Double sim = userSimMap.get(creator);
+            if (sim == null || sim <= 0) continue;
+
+            Object movieIdObj = row.get("movieId");
+            Object ratingObj = row.get("rating");
+            if (!(movieIdObj instanceof Number) || !(ratingObj instanceof Number)) continue;
+            int movieId = ((Number) movieIdObj).intValue();
+            if (ratedIds.contains(movieId)) continue;
+            double ratingVal = ((Number) ratingObj).doubleValue();
+
+            // Σ sim(u,v) * rating(v,i)
+            numMap.merge(movieId, sim * ratingVal, Double::sum);
+            // Σ |sim(u,v)|
+            denMap.merge(movieId, Math.abs(sim), Double::sum);
+            // 参与用户数
+            cntMap.merge(movieId, 1, Integer::sum);
+        }
+
+        if (numMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 4. 计算预测评分，只保留参考用户数 >= 3 的电影
+        class PredEntry {
+            final int movieId;
+            final double predictedRating;
+            final int count;
+
+            PredEntry(int movieId, double predictedRating, int count) {
+                this.movieId = movieId;
+                this.predictedRating = predictedRating;
+                this.count = count;
+            }
+        }
+
+        List<PredEntry> predictions = new ArrayList<>();
+        for (Map.Entry<Integer, Double> e : numMap.entrySet()) {
+            int movieId = e.getKey();
+            double num = e.getValue();
+            Double den = denMap.get(movieId);
+            Integer c = cntMap.get(movieId);
+            if (den == null || den == 0.0 || c == null || c < 3) {
+                continue;
+            }
+            double pr = num / den;
+            predictions.add(new PredEntry(movieId, pr, c));
+        }
+
+        if (predictions.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 按预测评分、参考用户数排序
+        predictions.sort((a, b) -> {
+            int cmp = Double.compare(b.predictedRating, a.predictedRating);
+            if (cmp != 0) return cmp;
+            return Integer.compare(b.count, a.count);
+        });
+
+        // 5. 查回 Movie 节点
+        List<Integer> topMovieIds = predictions.stream()
+                .limit(topN)
+                .map(pe -> pe.movieId)
+                .collect(Collectors.toList());
+
+        String movieCypher = "MATCH (m:Movie) WHERE m.id IN $ids RETURN m";
+        Map<String, Object> movieParams = new HashMap<>();
+        movieParams.put("ids", topMovieIds);
+        Iterable<MovieNode> movieNodes = neo4jSession.query(MovieNode.class, movieCypher, movieParams);
+
+        Map<Integer, MovieNode> idToMovie = new HashMap<>();
+        for (MovieNode m : movieNodes) {
+            if (m != null && m.getId() != null) {
+                idToMovie.put(m.getId().intValue(), m);
+            }
+        }
+
+        // 6. 组装返回结果
+        List<RatingPredictionItem> items = new ArrayList<>();
+        for (PredEntry pe : predictions) {
+            if (items.size() >= topN) break;
+            MovieNode movie = idToMovie.get(pe.movieId);
+            if (movie == null) continue;
+
+            StringBuilder reasonBuilder = new StringBuilder();
+            reasonBuilder.append("基于与你评分行为相似的用户的观影记录，预测你可能会给这部电影打约 ")
+                    .append(String.format(java.util.Locale.CHINA, "%.1f", pe.predictedRating))
+                    .append(" 分");
+            reasonBuilder.append("（参考了 ").append(pe.count).append(" 位相似用户的评分）");
+
+            RatingPredictionItem item = RatingPredictionItem.builder()
+                    .movie(movie)
+                    .predictedRating(pe.predictedRating)
+                    .reason(reasonBuilder.toString())
+                    .kgRelations(buildKgRelationsSummary(movie))
+                    .build();
+            items.add(item);
+        }
+
+        return items;
+    }
+
+    /**
+     * 构造一部电影在知识图谱中的简要关系描述列表：类型、地区、导演、演员等。
+     */
+    private List<String> buildKgRelationsSummary(MovieNode movie) {
+        List<String> relations = new ArrayList<>();
+        if (movie == null) {
+            return relations;
+        }
+        if (movie.getType() != null && !movie.getType().trim().isEmpty()) {
+            relations.add("类型: " + movie.getType().trim());
+        }
+        if (movie.getRegion() != null && !movie.getRegion().trim().isEmpty()) {
+            relations.add("地区: " + movie.getRegion().trim());
+        }
+        if (movie.getDirectorList() != null && !movie.getDirectorList().isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (String d : movie.getDirectorList()) {
+                if (d == null) {
+                    continue;
+                }
+                String trimmed = d.trim();
+                if (trimmed.isEmpty()) {
+                    continue;
+                }
+                if (sb.length() > 0) {
+                    sb.append("、");
+                }
+                sb.append(trimmed);
+            }
+            String joined = sb.toString();
+            if (!joined.isEmpty()) {
+                relations.add("导演: " + joined);
+            }
+        }
+        if (movie.getActorList() != null && !movie.getActorList().isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            int count = 0;
+            for (String a : movie.getActorList()) {
+                if (a == null) {
+                    continue;
+                }
+                String trimmed = a.trim();
+                if (trimmed.isEmpty()) {
+                    continue;
+                }
+                if (sb.length() > 0) {
+                    sb.append("、");
+                }
+                sb.append(trimmed);
+                count++;
+                if (count >= 5) {
+                    break;
+                }
+            }
+            String joined = sb.toString();
+            if (!joined.isEmpty()) {
+                relations.add("演员: " + joined);
+            }
+        }
+        return relations;
+    }
+
+    /**
+     * 为“基于评论推荐”构造候选电影列表：
+     * - 优先同类型电影（按评分排序）；
+     * - 不足时补充同地区电影；
+     * - 再不足时补充全局高分电影。
+     */
+    private List<MovieNode> buildCandidatesForCommentRecommendation(MovieNode target, int limit) {
+        LinkedHashMap<Long, MovieNode> candidates = new LinkedHashMap<>();
+        int need = Math.max(limit, 10);
+
+        // 同类型
+        if (target.getType() != null && !target.getType().trim().isEmpty()) {
+            List<MovieNode> sameType = movieRepository.findByTypeOrderByRating(target.getType(), need * 2);
+            if (sameType != null) {
+                for (MovieNode m : sameType) {
+                    if (m != null && m.getId() != null) {
+                        candidates.putIfAbsent(m.getId(), m);
+                    }
+                    if (candidates.size() >= need) break;
+                }
+            }
+        }
+
+        // 同地区
+        if (candidates.size() < need && target.getRegion() != null && !target.getRegion().trim().isEmpty()) {
+            String region = target.getRegion().trim();
+            String cypher = "MATCH (m:Movie) WHERE m.region = $region RETURN m ORDER BY m.movie_rating DESC LIMIT $limit";
+            Map<String, Object> params = new HashMap<>();
+            params.put("region", region);
+            params.put("limit", need * 2);
+            Iterable<MovieNode> iter = neo4jSession.query(MovieNode.class, cypher, params);
+            for (MovieNode m : iter) {
+                if (m != null && m.getId() != null) {
+                    candidates.putIfAbsent(m.getId(), m);
+                }
+                if (candidates.size() >= need) break;
+            }
+        }
+
+        // 兜底：全局高分电影
+        if (candidates.size() < need) {
+            List<MovieNode> high = getDefaultHighRatingMovies(need * 2);
+            for (MovieNode m : high) {
+                if (m != null && m.getId() != null) {
+                    candidates.putIfAbsent(m.getId(), m);
+                }
+                if (candidates.size() >= need) break;
+            }
+        }
+
+        return new ArrayList<>(candidates.values());
     }
     /**
      * 搜索电影（按名称、类型、导演、演员等）

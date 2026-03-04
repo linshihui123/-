@@ -13,6 +13,7 @@ D:\ideaProject\demo\src\main\java\org\example\model\CollaborativeFilteringResult
 D:\ideaProject\demo\src\main\java\org\example\repository\MovieRepository.java
 D:\ideaProject\demo\src\main\java\org\example\config\MyMetaObjectHandler.java
 D:\ideaProject\demo\src\main\java\org\example\model\MovieRecommendItem.java
+D:\ideaProject\demo\src\main\java\org\example\ai\AiLocalContextService.java
 D:\ideaProject\demo\src\main\java\org\example\config\Neo4jConfig.java
 D:\ideaProject\demo\src\main\java\org\example\controller\MovieController.java
 D:\ideaProject\demo\src\main\java\org\example\ai\ArkIntegrationService.java
