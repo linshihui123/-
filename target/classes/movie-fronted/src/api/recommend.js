@@ -106,6 +106,33 @@ export function getLikedMovies(username) {
     })
 }
 
+// 为指定用户对电影点赞
+export function addLike(username, movieId) {
+    return request({
+        url: '/like/add',
+        method: 'post',
+        params: { username, movieId }
+    })
+}
+
+// 取消指定用户对电影的点赞
+export function removeLike(username, movieId) {
+    return request({
+        url: '/like/remove',
+        method: 'post',
+        params: { username, movieId }
+    })
+}
+
+// 查询指定用户是否已点赞某部电影
+export function isLiked(username, movieId) {
+    return request({
+        url: '/like/is-liked',
+        method: 'get',
+        params: { username, movieId }
+    })
+}
+
 // 基于评分预测的推荐
 export function getRatingPredictionRecommend(username, limit = 20) {
     return request({

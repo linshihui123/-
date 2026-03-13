@@ -99,6 +99,59 @@
       <!-- 右侧：红框核心展示区（我的评分+相似用户，选项卡切换） -->
       <div class="control-right">
         <el-card shadow="hover" class="display-card" v-loading="loading" element-loading-text="加载中...">
+          <!-- 评分预测模式下的 AI 小问答区 -->
+          <div v-if="recommendationType === 'rating-prediction'" class="rating-qa-panel">
+            <div class="rating-qa-header">
+              <span class="rating-qa-title">AI 解释评分预测</span>
+              <el-select
+                v-model="currentExplainMovieId"
+                placeholder="选择要解读的电影"
+              size="mini"
+                class="rating-qa-movie-select"
+              >
+                <el-option
+                  v-for="(item, idx) in movies"
+                  :key="(item.movie && item.movie.id) || idx"
+                  :label="item.movie && item.movie.movieName || '未知电影'"
+                  :value="item.movie && item.movie.id || idx"
+                ></el-option>
+              </el-select>
+            </div>
+            <div class="rating-qa-actions">
+              <el-button
+                size="mini"
+                type="primary"
+                :loading="ratingQaLoading && ratingQaMode === 'why'"
+                @click="handleAiRatingExplain('why')"
+              >
+                为什么是这个预测分？
+              </el-button>
+              <el-input
+                v-model="ratingQaCustomQuestion"
+                size="mini"
+                class="rating-qa-input"
+                placeholder="例如：如果我更喜欢节奏慢一点的文艺片呢？"
+              ></el-input>
+              <el-button
+                size="mini"
+                type="success"
+                :loading="ratingQaLoading && ratingQaMode === 'custom'"
+                @click="handleAiRatingExplain('custom')"
+              >
+                问 AI：这个假设下会怎样？
+              </el-button>
+            </div>
+            <el-alert
+              v-if="ratingQaAnswer"
+              class="rating-qa-answer"
+              type="info"
+              :closable="false"
+              :title="ratingQaAnswer"
+              show-icon
+            >
+            </el-alert>
+          </div>
+
           <!-- 选项卡标题 -->
           <div class="display-tabs">
             <div class="tab-title" :class="{active: activeTab === 'rated'}" @click="activeTab='rated'">
@@ -200,14 +253,35 @@ export default {
       commentMovieName: '', // 基于评论推荐时的目标电影名
       commentText: '', // 基于评论推荐时的评论文本
       aiExplainText: '', // AI 对本次推荐结果的解读
-      aiExplaining: false // 是否正在请求 AI 解读
+      aiExplaining: false, // 是否正在请求 AI 解读
+      // 评分预测模式下的 AI 小问答状态
+      currentExplainMovieId: null,
+      ratingQaLoading: false,
+      ratingQaMode: '',
+      ratingQaAnswer: '',
+      ratingQaCustomQuestion: ''
     }
   },
-  // 页面挂载时加载用户列表并默认获取推荐
+  // 页面挂载时加载用户列表并默认以当前登录用户作为优先选项获取推荐
   async mounted() {
+    // 从本地存储中读取当前登录用户，优先作为下拉框默认用户
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user && user.username) {
+          this.selectedUserId = user.username;
+        }
+      }
+    } catch (e) {
+      this.selectedUserId = '';
+    }
+
     await this.loadUserList();
-    if (this.userList.length > 0) {
+    if (!this.selectedUserId && this.userList.length > 0) {
       this.selectedUserId = this.userList[0].value;
+    }
+    if (this.selectedUserId) {
       this.loadRecommendations();
     }
   },
@@ -328,6 +402,20 @@ export default {
       }
     },
 
+    /**
+     * 根据 currentExplainMovieId 获取当前需要 AI 解读的评分预测条目。
+     */
+    getCurrentRatingItem() {
+      if (!this.movies || this.movies.length === 0) {
+        return null;
+      }
+      if (this.currentExplainMovieId == null) {
+        return this.movies[0];
+      }
+      const found = this.movies.find(item => item.movie && item.movie.id === this.currentExplainMovieId);
+      return found || this.movies[0];
+    },
+
     // 推荐类型切换：只刷新推荐类型和用户列表，不主动改动当前已选用户
     async onRecommendationTypeChange() {
       const oldUser = this.selectedUserId;
@@ -432,6 +520,107 @@ export default {
       }
     },
 
+    /**
+     * 评分预测模式下，调用大模型解释单部电影的预测得分，或回答简单的“如果我更喜欢文艺片”等假设问题。
+     * mode:
+     *  - 'why':  为什么系统认为是这个预测分
+     *  - 'custom': 用户自定义的偏好/假设问题（定性说明）
+     */
+    async handleAiRatingExplain(mode) {
+      if (this.recommendationType !== 'rating-prediction') {
+        this.$message.warning('请先切换到「评分预测推荐」模式');
+        return;
+      }
+      const item = this.getCurrentRatingItem();
+      if (!item || !item.movie) {
+        this.$message.warning('暂无可解读的预测结果');
+        return;
+      }
+      const movie = item.movie;
+      const predicted = typeof item.predictedRating === 'number'
+        ? item.predictedRating
+        : null;
+
+      if (mode === 'custom') {
+        if (!this.ratingQaCustomQuestion || !this.ratingQaCustomQuestion.trim()) {
+          this.$message.warning('请输入你想让 AI 假设的偏好或问题');
+          return;
+        }
+      }
+
+      this.ratingQaLoading = true;
+      this.ratingQaMode = mode;
+      try {
+        const userId = this.selectedUserId || 'anonymous';
+        const movieName = movie.movieName || movie.name || '这部电影';
+
+        // 相似用户信息（前 5 个）
+        const similarSamples = (this.similarityResults || []).slice(0, 5).map(s => ({
+          userId: s.userId,
+          similarity: s.similarity,
+          avgRating: s.avgRating
+        }));
+
+        // 当前用户的历史评分样本（前 5 个）
+        const ratedSamples = (this.userRatedMovies || []).slice(0, 5).map(r => ({
+          movieName: r.movie && (r.movie.movieName || r.movie.name),
+          rating: r.rating
+        }));
+
+        const baseContext = {
+          userId,
+          targetMovie: {
+            name: movieName,
+            type: movie.type || null,
+            region: movie.region || movie.area || null
+          },
+          predictedRating: predicted,
+          similarUsers: similarSamples,
+          userRatedMovies: ratedSamples
+        };
+
+        let question;
+        if (mode === 'custom') {
+          question =
+            `针对电影《${movieName}》，请在阅读下面的预测得分和相似用户数据后，结合我提出的这个假设或偏好问题进行分析：` +
+            `「${this.ratingQaCustomQuestion.trim()}」。` +
+            `请定性说明在这种前提下，这部电影的预测评分可能会偏高、偏低还是差不多，并给出原因。`;
+        } else {
+          question =
+            `请解释：为什么系统预测用户「${userId}」会给《${movieName}》大约 ` +
+            `${predicted != null ? predicted.toFixed(1) + ' 分' : '某个分数'}？` +
+            `请结合相似用户的平均评分、你能看到的共同评分电影样本，` +
+            `用通俗中文说明“相似用户行为 → 预测打分”的逻辑。`;
+        }
+
+        const messages = [
+          {
+            role: 'user',
+            content: question
+          },
+          {
+            role: 'user',
+            content:
+              '下面是和本次评分预测相关的结构化数据，请你阅读后给出解释（不要返回 JSON，只要自然语言即可）：\n' +
+              JSON.stringify(baseContext, null, 2)
+          }
+        ];
+
+        const res = await arkMultiChat({ messages, userId });
+        if (res && res.code === 200 && res.data) {
+          this.ratingQaAnswer = res.data;
+        } else {
+          this.$message.error(res && res.msg ? res.msg : 'AI 解读评分预测失败，请稍后重试');
+        }
+      } catch (e) {
+        console.error('AI 解读评分预测失败:', e);
+        this.$message.error('AI 解读评分预测失败，请稍后重试');
+      } finally {
+        this.ratingQaLoading = false;
+        this.ratingQaMode = '';
+      }
+    },
+
     // 核心方法：获取推荐数据
     async loadRecommendations() {
       // 重置所有数据，避免切换用户时旧数据残留
@@ -486,6 +675,7 @@ export default {
             const list = res.data || [];
             this.movies = list.map(item => ({
               movie: item.movie || {},
+              predictedRating: item.predictedRating,
               reason: item.reason || '基于其他用户的评分记录，系统认为你可能会喜欢这部电影。',
               kgRelations: item.kgRelations || this.buildKgRelationsSummary(item.movie || {})
             }));
@@ -493,6 +683,14 @@ export default {
             await this.loadUserRatingPanel();
             // 同时加载点赞电影，保证「我的点赞电影」在该模式下也有数据
             this.loadUserLikedMovies();
+            // 默认选择第一部电影作为 AI 解读对象
+            if (this.movies.length > 0) {
+              const first = this.movies[0];
+              this.currentExplainMovieId = first.movie && first.movie.id != null ? first.movie.id : 0;
+            } else {
+              this.currentExplainMovieId = null;
+              this.ratingQaAnswer = '';
+            }
           } else {
             this.$message.warning(res.msg || '评分预测推荐失败');
             return;

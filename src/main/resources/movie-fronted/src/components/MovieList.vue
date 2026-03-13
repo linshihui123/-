@@ -6,7 +6,7 @@
         <span>推荐结果（共{{ movies.length }}部）</span>
       </div>
 
-      <!-- 纵向列表：左列电影名，上下排列；右列对应推荐理由 -->
+      <!-- 纵向列表：左列电影名与点赞按钮，上下排列；右列对应推荐理由 -->
       <div class="movie-rows-wrapper">
         <div
           class="movie-row"
@@ -18,6 +18,16 @@
             <div class="movie-name">
               {{ getInnerMovie(item).movieName || getInnerMovie(item).name || getInnerMovie(item).movie_name || '未知电影' }}
             </div>
+            <!-- 当前登录用户的点赞/取消点赞按钮，点击不触发整行点击事件 -->
+            <el-button
+              v-if="currentUsername && getInnerMovie(item).id"
+              type="text"
+              size="mini"
+              class="like-btn"
+              @click.stop="toggleLike(getInnerMovie(item))"
+            >
+              {{ isMovieLiked(getInnerMovie(item)) ? '取消点赞' : '点赞' }}
+            </el-button>
           </div>
           <div class="movie-reason-col" v-if="item.reason">
             <div class="recommend-reason">
@@ -32,6 +42,8 @@
 </template>
 
 <script>
+import { addLike, removeLike, isLiked } from '@/api/recommend'
+
 export default {
   name: 'MovieList',
   
@@ -48,6 +60,8 @@ export default {
           console.log('📌 电影类型:', firstMovie.type);
           console.log('📌 评分:', firstMovie.movieRating);
         }
+        // 推荐结果变化时刷新点赞状态
+        this.refreshLikeStates()
       },
       immediate: true
     }
@@ -64,6 +78,24 @@ export default {
     showTitle: {
       type: Boolean,
       default: false
+    }
+  },
+  data() {
+    return {
+      currentUsername: '',
+      likeStates: {}
+    }
+  },
+  created() {
+    // 从本地存储中读取当前登录用户
+    try {
+      const userStr = localStorage.getItem('user')
+      if (userStr) {
+        const user = JSON.parse(userStr)
+        this.currentUsername = user && user.username ? user.username : ''
+      }
+    } catch (e) {
+      this.currentUsername = ''
     }
   },
   methods: {
@@ -115,6 +147,80 @@ export default {
         return movie.actor
       }
       return '未知'
+    },
+    // 判断某电影当前是否已被点赞
+    isMovieLiked(movie) {
+      if (!movie || !movie.id) {
+        return false
+      }
+      return !!this.likeStates[movie.id]
+    },
+    // 刷新当前列表中所有电影的点赞状态
+    async refreshLikeStates() {
+      if (!this.currentUsername || !this.movies || this.movies.length === 0) {
+        this.likeStates = {}
+        return
+      }
+      const username = this.currentUsername
+      const tasks = this.movies
+        .map(item => this.getInnerMovie(item))
+        .filter(m => m && m.id)
+        .map(async m => {
+          try {
+            const res = await isLiked(username, m.id)
+            // 兼容 Result<T> 或直接 boolean 的两种响应结构
+            const liked = res && res.data && typeof res.data === 'object' && 'code' in res.data
+              ? (res.data.code === 200 && res.data.data === true)
+              : (res.data === true || res === true)
+            this.$set(this.likeStates, m.id, liked)
+          } catch (e) {
+            console.error('查询点赞状态失败', e)
+          }
+        })
+      await Promise.all(tasks)
+    },
+    // 点赞/取消点赞
+    async toggleLike(movie) {
+      if (!this.currentUsername) {
+        this.$message.warning('请先登录再进行点赞操作')
+        return
+      }
+      if (!movie || !movie.id) {
+        return
+      }
+      const username = this.currentUsername
+      const movieId = movie.id
+      const liked = this.isMovieLiked(movie)
+      try {
+        if (liked) {
+          const res = await removeLike(username, movieId)
+          const ok = res && res.data && typeof res.data === 'object' && 'code' in res.data
+            ? res.data.code === 200
+            : true
+          if (ok) {
+            this.$set(this.likeStates, movieId, false)
+            this.$message.success('已取消点赞')
+            this.$emit('like-changed')
+          } else {
+            this.$message.error('取消点赞失败')
+          }
+        } else {
+          const res = await addLike(username, movieId)
+          const ok = res && res.data && typeof res.data === 'object' && 'code' in res.data
+            ? res.data.code === 200
+            : true
+          if (ok) {
+            this.$set(this.likeStates, movieId, true)
+            this.$message.success('点赞成功')
+            this.$emit('like-changed')
+          } else {
+            this.$message.error('点赞失败')
+          }
+        }
+      } catch (e) {
+        console.error('点赞操作失败', e)
+        this.$message.error('操作失败，请稍后重试')
+      }
     }
   }
 }
@@ -171,6 +277,13 @@ export default {
   flex: 0 0 110px;
   padding-right: 12px;
   border-right: 1px solid #f0f0f0;
+}
+
+.like-btn {
+  margin-top: 6px;
+  padding: 0;
+  font-size: 12px;
+  color: #409EFF;
 }
 
 .movie-reason-col {

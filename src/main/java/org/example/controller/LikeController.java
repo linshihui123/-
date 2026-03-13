@@ -56,4 +56,51 @@ public class LikeController {
             return Result.error(500, "获取点赞记录失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 当前用户对电影点赞
+     * @param username 当前登录用户名（前端在登录后从本地存储中传入）
+     * @param movieId  电影在图数据库中的ID
+     */
+    @PostMapping("/add")
+    public Result<Boolean> addLike(@RequestParam String username,
+                                   @RequestParam Long movieId) {
+        try {
+            boolean ok = likeService.addLike(username, movieId);
+            if (!ok) {
+                return Result.error(500, "创建点赞关系失败");
+            }
+            return Result.success(true);
+        } catch (Exception e) {
+            return Result.error(500, "创建点赞关系失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 取消当前用户对电影的点赞
+     */
+    @PostMapping("/remove")
+    public Result<Boolean> removeLike(@RequestParam String username,
+                                      @RequestParam Long movieId) {
+        try {
+            boolean ok = likeService.removeLike(username, movieId);
+            return ok ? Result.success(true) : Result.error(500, "取消点赞失败");
+        } catch (Exception e) {
+            return Result.error(500, "取消点赞失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询当前用户是否已对指定电影点赞
+     */
+    @GetMapping("/is-liked")
+    public Result<Boolean> isLiked(@RequestParam String username,
+                                   @RequestParam Long movieId) {
+        try {
+            boolean liked = likeService.isLiked(username, movieId);
+            return Result.success(liked);
+        } catch (Exception e) {
+            return Result.error(500, "查询点赞状态失败: " + e.getMessage());
+        }
+    }
 }
